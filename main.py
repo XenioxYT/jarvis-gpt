@@ -4,6 +4,7 @@ import struct
 import time
 import pyaudio
 import wave
+import requests
 import webrtcvad
 import pvporcupine
 from dotenv import load_dotenv
@@ -34,6 +35,7 @@ api_base = os.getenv("OPENAI_API_BASE")
 oai_client = OpenAI(base_url=api_base, api_key=api_key)
 pv_access_key = os.getenv("PORCUPINE_ACCESS_KEY")
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./creds.json"
+OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
 client = texttospeech.TextToSpeechClient()
 tts_engine = pyttsx3.init()
@@ -74,15 +76,78 @@ tools = [
                 "required": ["date"],
             },
         },
-    }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "google_search",
+            "description": "Use the 'google_search' tool to retrieve internet search results relevant to your input. The results will return links and snippets of text from the webpages. Summarise the results in your response, not citing specific sources.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "search_term": {
+                        "type": "string",
+                        "description": "The term to search for."
+                    },
+                    "num_results": {
+                        "type": "integer",
+                        "enum": [5, 10, 15],
+                        "description": "Number of search results."
+                    },
+                },
+                "required": ["search_term"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weather_forecast",
+            "description": "Get the weather forecast for a given location. Always use celcius.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "The city and state, or city and country, e.g., Sheffield, UK or Paris, France",
+                    },
+                },
+                "required": ["location"],
+            },
+        },
+    },
 ]
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
+def get_current_weather(location):
+    """Get the current weather in a given location using OpenWeatherMap One Call API"""
+    # Use geocoding to get the latitude and longitude for the location
+    geocode_url = f"http://api.openweathermap.org/geo/1.0/direct?q={location}&limit=1&appid={OPENWEATHER_API_KEY}"
+    geocode_response = requests.get(geocode_url).json()
+
+    if not geocode_response:
+        return json.dumps({"error": "Location not found"})
+
+    lat = geocode_response[0]["lat"]
+    lon = geocode_response[0]["lon"]
+
+    # Call the One Call API with retrieved latitude and longitude
+    weather_url = f"https://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&exclude=minutely,hourly,daily&units=metric&appid={OPENWEATHER_API_KEY}"
+    weather_response = requests.get(weather_url).json()
+
+    if "current" not in weather_response:
+        return json.dumps({"error": "Could not retrieve weather data"})
+
+    current_weather = weather_response["current"]
+    return json.dumps({
+        "location": location,
+        "temperature": current_weather["temp"],
+        "weather": current_weather["weather"][0]["description"],
+        "unit": "Celsius"
+    })
+
 def authenticate_google_calendar_api():
-    """Shows basic usage of the Google Calendar API.
-    Prints the start and name of the next 10 events on the user's calendar.
-    """
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -120,27 +185,25 @@ def check_calendar(date):
                                               timeMax=time_max, singleEvents=True,
                                               orderBy='startTime').execute()
         events = events_result.get('items', [])
+        print(f"Found {len(events)} events")
 
         # Prepare the list of events in the required output format
-        event_list = [{"summary": event["summary"], "start": event["start"].get("dateTime", event["start"].get("date"))} for event in events]
+        event_list = [
+            {
+                "summary": event["summary"],
+                "location": event.get("location", "No location specified"),
+                "start": event["start"].get("dateTime", event["start"].get("date")),
+                "end": event["end"].get("dateTime", event["end"].get("date")),
+                "description": event.get("description", "No description provided")
+            } 
+            for event in events
+        ]
 
         # Output the events for the given date range
-        print(f"Events for {date}: {event_list}")
         return json.dumps({"date": date, "events": event_list})
     except Exception as e:
         print(f"An error occurred: {e}")
         return json.dumps({"date": date, "error": str(e), "events": []})
-
-def get_current_weather(location, unit="fahrenheit"):
-    """Get the current weather in a given location"""
-    if "tokyo" in location.lower():
-        return json.dumps({"location": "Tokyo", "temperature": "62", "unit": unit})
-    elif "san francisco" in location.lower():
-        return json.dumps({"location": "San Francisco", "temperature": "72", "unit": unit})
-    elif "paris" in location.lower():
-        return json.dumps({"location": "Paris", "temperature": "22", "unit": unit})
-    else:
-        return json.dumps({"location": location, "temperature": "unknown"})
 
 # Initialize PyAudio
 pa = pyaudio.PyAudio()
@@ -213,6 +276,7 @@ def get_chatgpt_response(text):
         available_functions = {
             "get_current_weather": get_current_weather,
             "check_calendar": check_calendar,
+            # "google_search": google_search,
         }
 
         for tool_call in tool_calls:
