@@ -74,6 +74,8 @@ messages = [
         "You are allowed to give opinions and thoughts to the user. "
         "When giving calendar events, you should give a very concise overview, and ask the user if they'd like to hear more. Don't just list them all out. "
         "ALWAYS check the calendar, weather, etc. before giving a response that includes this. Do NOT hallucinate or make up events without checking. "
+        "The date and time is provided at the beginning of the message. This indicates the current date and time, and is used to give you a reference point. "
+        "Use this as well to give a sense of time passing and time-contextual responses. "
     },
 ]
 
@@ -105,7 +107,7 @@ tools = [
                 "properties": {
                     "location": {
                         "type": "string",
-                        "description": "The city, e.g., Sheffield, York, London",
+                        "description": "The city, e.g., Newcastle, York, London",
                     },
                 },
                 "required": ["location"],
@@ -347,21 +349,51 @@ def get_current_weather(location):
     if not geocode_response:
         return json.dumps({"error": "Location not found"})
 
+    # Extract latitude and longitude from geocode response
     lat = geocode_response[0]["lat"]
     lon = geocode_response[0]["lon"]
 
-    # Call the One Call API with retrieved latitude and longitude
-    weather_url = f"https://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&exclude=minutely,hourly,daily&units=metric&appid={OPENWEATHER_API_KEY}"
+    # Call the OpenWeatherMap One Call API
+    weather_url = f"https://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&exclude=minutely&units=metric&appid={OPENWEATHER_API_KEY}"
     weather_response = requests.get(weather_url).json()
 
     if "current" not in weather_response:
         return json.dumps({"error": "Could not retrieve weather data"})
 
+    # Parse current weather
     current_weather = weather_response["current"]
-    return json.dumps({
-        "location": location,
+    current_weather_data = {
         "temperature": current_weather["temp"],
         "weather": current_weather["weather"][0]["description"],
+    }
+
+    # Parse hourly forecast
+    hourly_forecast = weather_response.get("hourly", [])
+    hourly_data = [
+        {
+            "time": hour_data["dt"],
+            "temperature": hour_data["temp"],
+            "weather": hour_data["weather"][0]["description"],
+        } for hour_data in hourly_forecast[:24]  # Gets the next 24 hours of forecast
+    ]
+
+    # Parse daily forecast
+    daily_forecast = weather_response.get("daily", [])
+    daily_data = [
+        {
+            "date": day_data["dt"],
+            "day_temp": day_data["temp"]["day"],
+            "night_temp": day_data["temp"]["night"],
+            "weather": day_data["weather"][0]["description"],
+        } for day_data in daily_forecast[:7]  # Gets the next 7 days of forecast
+    ]
+
+    # Return combined weather data
+    return json.dumps({
+        "location": location,
+        "current": current_weather_data,
+        "hourly": hourly_data,
+        "daily": daily_data,
         "unit": "Celsius"
     })
 
@@ -482,7 +514,9 @@ def get_chatgpt_response(text, function=False, function_name=None):
                 "content": text,
             }
         )
-    messages.append({"role": "user", "content": text})
+    timestamp = datetime.datetime.now().strftime("%H:%M on %a %d %B %Y")
+    
+    messages.append({"role": "user", "content": f"At {timestamp} user said: {text}"})
 
     # Send the initial message and the available tool to the model
     response = oai_client.chat.completions.create(
