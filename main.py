@@ -67,7 +67,13 @@ def stop_thinking_sound():
 messages = [
     {
         "role": "system",
-        "content": "You are Jarvis, a voice-based personal assistant to Tom. You are speaking to him now. You are a voice assistant, so keep responses short and concise, but maintain all the important information. Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. You CANNOT call a function after giving a text response, so DO NOT say thing like 'Please hold on for a moment', instead ask the user whether they'd like you to continue."
+        "content": "You are Jarvis, a voice-based personal assistant to Tom. You are speaking to him now. "
+        "You are a voice assistant, so keep responses short and concise, but maintain all the important information. "
+        "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
+        "You CANNOT call a function after giving a text response, so DO NOT say thing like 'Please hold on for a moment', instead ask the user whether they'd like you to continue. "
+        "You are allowed to give opinions and thoughts to the user. "
+        "When giving calendar events, you should give a very concise overview, and ask the user if they'd like to hear more. Don't just list them all out. "
+        "ALWAYS check the calendar, weather, etc. before giving a response that includes this. Do NOT hallucinate or make up events without checking. "
     },
 ]
 
@@ -110,7 +116,7 @@ tools = [
         "type": "function",
         "function": {
             "name": "check_calendar",
-            "description": "Check the calendar for a given date",
+            "description": "Check the calendar for a given date. Give a very concise overview, and ask the user if they'd like to hear more.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -333,6 +339,8 @@ def reminder_daemon():
 def get_current_weather(location):
     """Get the current weather in a given location using OpenWeatherMap One Call API"""
     # Use geocoding to get the latitude and longitude for the location
+    if "," in location:
+        location = location.split(",")[0]  # Only use the first part of the location string
     geocode_url = f"http://api.openweathermap.org/geo/1.0/direct?q={location}&limit=1&appid={OPENWEATHER_API_KEY}"
     geocode_response = requests.get(geocode_url).json()
 
@@ -460,8 +468,8 @@ def save_audio(frames, filename='temp.wav'):
 
 # Function to transcribe speech to text using Whisper
 def transcribe(filename='temp.wav'):
-    # model = whisper.load_model("base")  # Choose the appropriate model size
-    result = model.transcribe(filename)
+    # model = whisper.load_model("base")  # this is done in the head of the file
+    result = model.transcribe(filename, language="en")
     return result["text"]
 
 # Function to get response from ChatGPT, making any necessary tool calls
@@ -481,7 +489,6 @@ def get_chatgpt_response(text, function=False, function_name=None):
         model="gpt-4-1106-preview",
         messages=messages,
         tools=tools,
-        tool_choice="auto",
     )
 
     # Extract the response message
