@@ -1,6 +1,7 @@
 import json
 import os
 import struct
+import threading
 import time
 import pyaudio
 import wave
@@ -21,11 +22,53 @@ from googleapiclient.discovery import build
 
 load_dotenv()
 
+import simpleaudio as sa
+
+thinking_sound_stop_event = threading.Event()
+
+current_playback = None
+
+def play_sound(sound_file, loop=False):
+    global current_playback
+
+    def play():
+        global current_playback
+        while not thinking_sound_stop_event.is_set():
+            wave_obj = sa.WaveObject.from_wave_file(sound_file)
+            play_obj = wave_obj.play()
+            current_playback = play_obj
+            play_obj.wait_done()
+            if not loop or thinking_sound_stop_event.is_set():
+                break
+
+    # If there's already a sound playing, stop it
+    # if current_playback:
+    #     current_playback.stop()
+
+    # Start a new thread for the next sound to play
+    threading.Thread(target=play, daemon=True).start()
+
+def stop_thinking_sound():
+    global current_playback
+
+    # Set the event to stop future sound replay in the loop
+    thinking_sound_stop_event.set()
+
+    # Stop the current playback if it exists
+    if current_playback:
+        current_playback.stop()
+    
+    # Reset the event for the next playback loop
+    thinking_sound_stop_event.clear()
+
+    # Clear the current playback reference
+    current_playback = None
+
 messages = [
-            {
-            "role": "system",
-            "content": "You are Jarvis, a voice-based personal assistant to Tom. You are speaking to him now. You are a voice assistant, so keep responses short and concise, but maintain all the important information. Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS."
-        },
+    {
+        "role": "system",
+        "content": "You are Jarvis, a voice-based personal assistant to Tom. You are speaking to him now. You are a voice assistant, so keep responses short and concise, but maintain all the important information. Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. You CANNOT call a function after giving a text response, so DO NOT say thing like 'Please hold on for a moment', instead ask the user whether they'd like you to continue."
+    },
 ]
 
 # Load environment variables
@@ -36,6 +79,10 @@ oai_client = OpenAI(base_url=api_base, api_key=api_key)
 pv_access_key = os.getenv("PORCUPINE_ACCESS_KEY")
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./creds.json"
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
+LISTENING_SOUND = "./started_listening.wav"
+STOPPED_LISTENING_SOUND = "./stopped_listening.wav"
+THINKING_SOUND = "./thinking.wav"
+SUCCESS_SOUND = "./success.wav"
 
 client = texttospeech.TextToSpeechClient()
 tts_engine = pyttsx3.init()
@@ -52,9 +99,8 @@ tools = [
                 "properties": {
                     "location": {
                         "type": "string",
-                        "description": "The city and state, e.g., San Francisco, CA",
+                        "description": "The city, e.g., Sheffield, York, London",
                     },
-                    "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
                 },
                 "required": ["location"],
             },
@@ -80,28 +126,6 @@ tools = [
     {
         "type": "function",
         "function": {
-            "name": "google_search",
-            "description": "Use the 'google_search' tool to retrieve internet search results relevant to your input. The results will return links and snippets of text from the webpages. Summarise the results in your response, not citing specific sources.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "search_term": {
-                        "type": "string",
-                        "description": "The term to search for."
-                    },
-                    "num_results": {
-                        "type": "integer",
-                        "enum": [5, 10, 15],
-                        "description": "Number of search results."
-                    },
-                },
-                "required": ["search_term"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
             "name": "get_weather_forecast",
             "description": "Get the weather forecast for a given location. Always use celcius.",
             "parameters": {
@@ -116,9 +140,195 @@ tools = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "set_reminder",
+            "description": "Set a reminder for a specified time",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reminder_text": {
+                        "type": "string",
+                        "description": "The content of the reminder",
+                    },
+                    "reminder_time": {
+                        "type": "string",
+                        "description": "The time for the reminder in format 'YYYY-MM-DD HH:MM'",
+                    },
+                },
+                "required": ["reminder_text", "reminder_time"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "edit_reminder",
+            "description": "Edit an existing reminder",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "search_text": {
+                        "type": "string",
+                        "description": "Natural language text to describe the reminder to be edited",
+                    },
+                    "new_text": {
+                        "type": "string",
+                        "description": "The new content for the reminder (optional)",
+                        "optional": True,
+                    },
+                    "new_time": {
+                        "type": "string",
+                        "description": "The new time for the reminder in format 'YYYY-MM-DD HH:MM' (optional)",
+                        "optional": True,
+                    }
+                },
+                "required": ["search_text"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_unnotified_reminders",
+            "description": "List all reminders that have not yet been notified",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "dummy_variable": {
+                        "type": "string",
+                        "description": "This is a dummy variable to allow the function to be called without any parameters.",
+                    },
+                },
+            },
+        },
+    },
 ]
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
+
+REMINDERS_DB_FILE = 'reminders.json'
+
+def list_unnotified_reminders(display_reminders=False):
+    reminders = load_reminders()
+    if not reminders:
+        return "No reminders found. Please ask the user if they'd like to set a reminder. Don't call this function again when there are no reminders."
+    return json.dumps(
+        {"reminders": [rem for rem in reminders if not rem['notified']]}, 
+        indent=2, default=str
+    )
+
+def load_reminders():
+    if not os.path.exists(REMINDERS_DB_FILE):
+        return []
+    with open(REMINDERS_DB_FILE, 'r') as file:
+        return json.load(file)
+
+def save_reminders(reminders):
+    with open(REMINDERS_DB_FILE, 'w') as file:
+        json.dump(reminders, file, indent=2)
+        file.flush()
+        os.fsync(file.fileno())  # Force write to disk
+
+def add_reminder(reminder_text, reminder_time):
+    reminders = load_reminders()
+    reminder_id = 1 if not reminders else max(r['id'] for r in reminders) + 1
+    reminders.append({
+        'id': reminder_id,
+        'text': reminder_text,
+        'time': reminder_time,
+        'notified': False
+    })
+    save_reminders(reminders)
+    return f"Reminder set for {reminder_time} with text: {reminder_text}"
+    
+def check_reminders():
+    current_time = datetime.datetime.now().replace(second=0, microsecond=0)
+    reminders = load_reminders()
+    
+    due_reminders = [r for r in reminders if not r['notified'] and datetime.datetime.fromisoformat(r['time']) == current_time]
+    
+    for reminder in due_reminders:
+        message = f"A reminder has been triggered for {reminder['time']} with text: {reminder['text']}. Please deliver this reminder to the user."
+        response = get_chatgpt_response(message, function=True, function_name="speak_reminder")
+        text_to_speech(response)
+        
+        reminder['notified'] = True  # Mark as notified
+
+    save_reminders(reminders)  # Update the reminders in the database
+    
+from difflib import get_close_matches
+
+def get_closest_reminder_matches(search_text, threshold=0.5):
+    """
+    Find reminders with descriptions closely matching the given string.
+    
+    :param search_text: String to match against reminder descriptions.
+    :param threshold: Float, similarity ratio must be greater than this threshold to be considered a match.
+    :return: A list of potential reminders that match.
+    """
+    reminders = load_reminders()
+    descriptions = [r['text'] for r in reminders if not r['notified']]
+    matches = get_close_matches(search_text, descriptions, n=3, cutoff=threshold)
+    
+    # If exact match, return that reminder only
+    if search_text in descriptions:
+        matching_reminders = [r for r in reminders if r['text'] == search_text]
+        return (matching_reminders, True)
+
+    # Otherwise, return all close matches
+    matching_descriptions = set(matches)
+    matching_reminders = [r for r in reminders if r['text'] in matching_descriptions]
+
+    return (matching_reminders, False)
+    
+def edit_reminder(search_text, new_text=None, new_time=None):
+    reminders = load_reminders()
+    matched_reminders, exact_match = get_closest_reminder_matches(search_text)
+    print(f"Matching reminders: {matched_reminders}, Exact match: {exact_match}")
+
+    if not matched_reminders:
+        return "No matching reminder found."
+    elif exact_match or len(matched_reminders) == 1:
+        # If an exact match is found, or there is only one possible match, update the reminder
+        reminder_to_edit = matched_reminders[0]
+        print(f"Found reminder to edit: {reminder_to_edit}")
+
+        # Find the reminder in the list and update it
+        for index, rem in enumerate(reminders):
+            if rem['id'] == reminder_to_edit['id']:
+                print(f"Found reminder at index {index} to update.")
+                if new_time:
+                    rem['time'] = new_time
+                if new_text:
+                    rem['text'] = new_text
+                rem['notified'] = False  # Reset notification status
+                
+        save_reminders(reminders)
+        updated_reminders = load_reminders()
+        print(f"Updated reminders from file: {updated_reminders}")
+
+        # Find the reminder in the updated list for final confirmation
+        for rem in updated_reminders:
+            if rem['id'] == reminder_to_edit['id']:
+                print(f"Confirmed updated reminder from file: {rem}")
+                break
+
+        return "Your reminder has been successfully updated."
+    else:
+        # If multiple matches are found, explain to the user how to specify their choice
+        message = "No exact match found for editing a reminder. "\
+                  "Here are the top hits, please specify by saying, "\
+                  "for example, 'The first one' or 'The second one':\n"
+        message += "\n".join(f"{index + 1}: '{reminder['text']}' for {reminder['time']}"
+                             for index, reminder in enumerate(matched_reminders))
+        return message
+
+def reminder_daemon():
+    while True:
+        check_reminders()
+        time.sleep(60)  # Wait for one minute before checking again
 
 def get_current_weather(location):
     """Get the current weather in a given location using OpenWeatherMap One Call API"""
@@ -255,7 +465,15 @@ def transcribe(filename='temp.wav'):
     return result["text"]
 
 # Function to get response from ChatGPT, making any necessary tool calls
-def get_chatgpt_response(text):
+def get_chatgpt_response(text, function=False, function_name=None):
+    if function:
+        messages.append(
+            {
+                "role": "function",
+                "name": function_name, 
+                "content": text,
+            }
+        )
     messages.append({"role": "user", "content": text})
 
     # Send the initial message and the available tool to the model
@@ -272,11 +490,15 @@ def get_chatgpt_response(text):
     tool_calls = getattr(response_message, 'tool_calls', [])
     
     if tool_calls:
+        print(f"Tool calls: {tool_calls}")
         # Dictionary mapping function names to actual function implementations
         available_functions = {
             "get_current_weather": get_current_weather,
             "check_calendar": check_calendar,
             # "google_search": google_search,
+            "set_reminder": add_reminder,
+            "edit_reminder": edit_reminder,
+            "list_unnotified_reminders": list_unnotified_reminders,
         }
 
         for tool_call in tool_calls:
@@ -296,17 +518,35 @@ def get_chatgpt_response(text):
                         "content": function_response,
                     }
                 )
-                
-                # Resolve any follow-up after the tool call
+                continue
+        try:
             second_response = oai_client.chat.completions.create(
                 model="gpt-4-1106-preview",
                 messages=messages
             )
-                # Assume that we return the final response text after the tool call handling
-            return second_response.choices[0].message.content
-        else:
-            raise Exception(f"Function '{function_name}' is not implemented.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            second_response = oai_client.chat.completions.create(
+                model="gpt-4-1106-preview",
+                messages=messages
+            )
+        if second_response:
+            print(second_response.choices[0].message)
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": second_response.choices[0].message.content,
+                }
+            )
+            # Assume that we return the final response text after the tool call handling
+        return second_response.choices[0].message.content
     else:
+        messages.append(
+            {
+                "role": "assistant",
+                "content": response_message.content,
+            }
+        )
         # Return the direct response text when no tool calls are needed
         return response_message.content
 
@@ -379,9 +619,8 @@ def main():
 
         if keyword_index >= 0:
             print("Jarvis activated. Listening for your command...")
+            play_sound(LISTENING_SOUND)
             accumulated_frames = []
-
-            # Initialize the variable to keep track of silence
             num_silent_frames = 0
             vad_frame_len = int(0.02 * 16000)  # 20 ms
 
@@ -389,8 +628,6 @@ def main():
                 pcm = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
                 pcm_unpacked = struct.unpack_from("h" * porcupine.frame_length, pcm)
                 vad_buffer = b''.join(struct.pack('h', frame) for frame in pcm_unpacked)
-
-                # Verify if the buffer is speech
                 is_speech = vad.is_speech(vad_buffer[:2 * vad_frame_len], 16000)
 
                 if is_speech:
@@ -400,22 +637,27 @@ def main():
 
                 accumulated_frames.append(vad_buffer)
 
-                # Stop capturing after a short period of silence
-                if num_silent_frames > 30:
+                if num_silent_frames > 30:  # Stop capturing after a short period of silence
+                    print("Done capturing.")
+                    play_sound(STOPPED_LISTENING_SOUND)
                     break
 
-            # Save and process the captured speech
             save_audio(accumulated_frames)
-            print("Done capturing. Processing audio...")
+            print("Processing audio...")
+            play_sound(THINKING_SOUND)
             command = transcribe()
             print(f"You said: {command}")
             response = get_chatgpt_response(command)
+            stop_thinking_sound()
+            play_sound(SUCCESS_SOUND)  # Play success sound before speaking out the response
             text_to_speech(response)
 
     audio_stream.close()
     pa.terminate()
     porcupine.delete()
 
+reminder_daemon_thread = threading.Thread(target=reminder_daemon, daemon=True)
+reminder_daemon_thread.start()
 
 if __name__ == '__main__':
     main()
