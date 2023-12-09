@@ -63,19 +63,32 @@ def stop_thinking_sound():
 
     # Clear the current playback reference
     current_playback = None
+    
+
+def get_location():
+    api_token = os.getenv('IPINFO_TOKEN')
+    headers = {
+        'Authorization': 'Bearer ' + api_token
+    }
+    response = requests.get('https://ipinfo.io', headers=headers)
+    data = response.json()
+    return data.get('city', 'Unknown')
+
+city = get_location()
 
 messages = [
     {
         "role": "system",
-        "content": "You are Jarvis, a voice-based personal assistant to Tom. You are speaking to him now. "
+        "content": "You are Jarvis, a voice-based personal assistant to Tom currently located in " + city + ". You are speaking to him now. "
         "You are a voice assistant, so keep responses short and concise, but maintain all the important information. "
         "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
         "You CANNOT call a function after giving a text response, so DO NOT say thing like 'Please hold on for a moment', instead ask the user whether they'd like you to continue. "
-        "You are allowed to give opinions and thoughts to the user. "
+        "You are allowed to give opinions and thoughts to the user. Don't respond with lists of things, instead give a concise overview and ask the user if they'd like to hear more. If a list is needed, provide it more conversationally. "
         "When giving calendar events, you should give a very concise overview, and ask the user if they'd like to hear more. Don't just list them all out. "
         "ALWAYS check the calendar, weather, etc. before giving a response that includes this. Do NOT hallucinate or make up events without checking. "
         "The date and time is provided at the beginning of the message. This indicates the current date and time, and is used to give you a reference point. "
         "Use this as well to give a sense of time passing and time-contextual responses. "
+        "The current date and time is: " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     },
 ]
 
@@ -107,7 +120,7 @@ tools = [
                 "properties": {
                     "location": {
                         "type": "string",
-                        "description": "The city, e.g., Newcastle, York, London",
+                        "description": "The city, e.g., London",
                     },
                 },
                 "required": ["location"],
