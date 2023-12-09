@@ -11,6 +11,7 @@ import pvporcupine
 from dotenv import load_dotenv
 from openai import OpenAI
 from google.cloud import texttospeech
+from dateutil import parser as date_parser
 import pyttsx3
 import whisper
 import io
@@ -113,19 +114,23 @@ tools = [
     {
         "type": "function",
         "function": {
-            "name": "get_current_weather",
-            "description": "Get the current weather in a given location",
+            "name": "get_weather_data",
+            "description": "Get the weather data for a specific location and optionally for a particular date or date range using OpenWeatherMap API.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "location": {
                         "type": "string",
-                        "description": "The city, e.g., London",
+                        "description": "The city and country, e.g., York",
                     },
+                    "date": {
+                        "type": "string",
+                        "description": "An optional date (or date range) to fetch the weather for, e.g., '2023-09-12' or '2023-11-12 - 2023-11-15'. For current weather, this parameter can be omitted. Specify a range for upcoming days. ",
+                    }
                 },
                 "required": ["location"],
             },
-        },
+        }
     },
     {
         "type": "function",
@@ -141,23 +146,6 @@ tools = [
                     }
                 },
                 "required": ["date"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_weather_forecast",
-            "description": "Get the weather forecast for a given location. Always use celcius.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "location": {
-                        "type": "string",
-                        "description": "The city and state, or city and country, e.g., Sheffield, UK or Paris, France",
-                    },
-                },
-                "required": ["location"],
             },
         },
     },
@@ -351,64 +339,69 @@ def reminder_daemon():
         check_reminders()
         time.sleep(60)  # Wait for one minute before checking again
 
-def get_current_weather(location):
-    """Get the current weather in a given location using OpenWeatherMap One Call API"""
-    # Use geocoding to get the latitude and longitude for the location
-    if "," in location:
-        location = location.split(",")[0]  # Only use the first part of the location string
-    geocode_url = f"http://api.openweathermap.org/geo/1.0/direct?q={location}&limit=1&appid={OPENWEATHER_API_KEY}"
+def get_weather_data(location, date=None):
+    location = location.split(",")[0]  # Assuming the country is not needed in the API call
+
+    # Geocoding to get latitude and longitude
+    geocode_url = f"http://api.openweathermap.org/geo/1.0/direct?q={location}&appid={OPENWEATHER_API_KEY}"
     geocode_response = requests.get(geocode_url).json()
 
     if not geocode_response:
-        return json.dumps({"error": "Location not found"})
+        return json.dumps({"error": "Location not found"}, indent=2)
 
-    # Extract latitude and longitude from geocode response
-    lat = geocode_response[0]["lat"]
-    lon = geocode_response[0]["lon"]
+    lat = geocode_response[0]['lat']
+    lon = geocode_response[0]['lon']
 
-    # Call the OpenWeatherMap One Call API
-    weather_url = f"https://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&exclude=minutely&units=metric&appid={OPENWEATHER_API_KEY}"
-    weather_response = requests.get(weather_url).json()
+    weather_api_url = f"https://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&exclude=minutely,hourly,alerts&appid={OPENWEATHER_API_KEY}&units=metric"
 
-    if "current" not in weather_response:
-        return json.dumps({"error": "Could not retrieve weather data"})
+    try:
+        # Fetch the weather data
+        response = requests.get(weather_api_url).json()
 
-    # Parse current weather
-    current_weather = weather_response["current"]
-    current_weather_data = {
-        "temperature": current_weather["temp"],
-        "weather": current_weather["weather"][0]["description"],
-    }
+        # Prepare the return data structure
+        response_data = {
+            "location": location,
+            "data": []
+        }
 
-    # Parse hourly forecast
-    hourly_forecast = weather_response.get("hourly", [])
-    hourly_data = [
-        {
-            "time": hour_data["dt"],
-            "temperature": hour_data["temp"],
-            "weather": hour_data["weather"][0]["description"],
-        } for hour_data in hourly_forecast[:24]  # Gets the next 24 hours of forecast
-    ]
+        # Get current date for comparison
+        current_date = datetime.datetime.utcfromtimestamp(response['current']['dt'])
+        if date:
+            single_date = None  # variable for handling a single date
+            # Check if we have a date range or a single date
+            if ' - ' in date:
+                # User provided a date range
+                start_date_str, end_date_str = date.split(' - ')  # Safe to unpack
+                start_date = date_parser.parse(start_date_str.strip()).date()
+                end_date = date_parser.parse(end_date_str.strip()).date()
+                response_data['data'] = response['daily']  # assume you want all daily data
+                response_data['date'] = f"{start_date.strftime('%Y-%m-%d')} - {end_date.strftime('%Y-%m-%d')}"
+            else:
+                # User provided a single date
+                single_date = date_parser.parse(date.strip()).date()
+                response_data['date'] = single_date.strftime("%Y-%m-%d")
 
-    # Parse daily forecast
-    daily_forecast = weather_response.get("daily", [])
-    daily_data = [
-        {
-            "date": day_data["dt"],
-            "day_temp": day_data["temp"]["day"],
-            "night_temp": day_data["temp"]["night"],
-            "weather": day_data["weather"][0]["description"],
-        } for day_data in daily_forecast[:7]  # Gets the next 7 days of forecast
-    ]
+            if single_date:  # Handle single date case differently
+                # Find and return the corresponding data
+                for weather_data in response['daily']:
+                    weather_date = datetime.datetime.utcfromtimestamp(weather_data['dt']).date()
+                    if weather_date == single_date:
+                        response_data['data'] = weather_data
+                        break
+            
+        else:
+            # No date specified, default to today's weather
+            response_data['date'] = datetime.datetime.utcfromtimestamp(response['current']['dt']).strftime('%Y-%m-%d')
+            response_data['data'] = {
+                'current': response['current'],
+                'daily_forecast': response['daily'][0]  # Today's forecast from the daily data
+            }
 
-    # Return combined weather data
-    return json.dumps({
-        "location": location,
-        "current": current_weather_data,
-        "hourly": hourly_data,
-        "daily": daily_data,
-        "unit": "Celsius"
-    })
+        if not response_data['data']:
+            return json.dumps({"error": f"No weather data found for the date {date}"}, indent=2)
+        return json.dumps(response_data, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, indent=2)
 
 def authenticate_google_calendar_api():
     creds = None
@@ -544,10 +537,9 @@ def get_chatgpt_response(text, function=False, function_name=None):
     tool_calls = getattr(response_message, 'tool_calls', [])
     
     if tool_calls:
-        print(f"Tool calls: {tool_calls}")
         # Dictionary mapping function names to actual function implementations
         available_functions = {
-            "get_current_weather": get_current_weather,
+            "get_weather_data": get_weather_data,
             "check_calendar": check_calendar,
             # "google_search": google_search,
             "set_reminder": add_reminder,
@@ -563,6 +555,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
             
             if function_name in available_functions:
                 function_response = available_functions[function_name](**function_args)
+                print(function_response)
                 
                 # Send the function response back to the model
                 messages.append(
