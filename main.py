@@ -11,15 +11,18 @@ import pvporcupine
 from dotenv import load_dotenv
 from openai import OpenAI
 from google.cloud import texttospeech
-from dateutil import parser as date_parser
 import pyttsx3
 import whisper
 import io
 import datetime
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from googleapiclient.discovery import build
+
+# imports for the tools
+from utils.tools import tools
+from utils.reminders import add_reminder, edit_reminder, list_unnotified_reminders, load_reminders, save_reminders
+from utils.weather import get_weather_data
+from calendar_utils import check_calendar, add_event_to_calendar
+from utils.home_assistant import toggle_entity
+from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device
 
 load_dotenv()
 
@@ -82,6 +85,7 @@ messages = [
         "role": "system",
         "content": "You are Jarvis, a voice-based personal assistant to Tom currently located in " + city + ". You are speaking to him now. "
         "You are a voice assistant, so keep responses short and concise, but maintain all the important information. "
+        "You are equipped with a variety of tools, which you can use to perform various tasks. For example, you can play music on spotify for the user. Do not mention you are a text-based assistant. "
         "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
         "You CANNOT call a function after giving a text response, so DO NOT say thing like 'Please hold on for a moment', instead ask the user whether they'd like you to continue. "
         "You are allowed to give opinions and thoughts to the user. Don't respond with lists of things, instead give a concise overview and ask the user if they'd like to hear more. If a list is needed, provide it more conversationally. "
@@ -110,147 +114,9 @@ client = texttospeech.TextToSpeechClient()
 tts_engine = pyttsx3.init()
 model = whisper.load_model("base")
 
-tools = [
-    {
-        "type": "function",
-        "function": {
-            "name": "get_weather_data",
-            "description": "Get the weather data for a specific location and optionally for a particular date or date range using OpenWeatherMap API.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "location": {
-                        "type": "string",
-                        "description": "The city and country, e.g., York",
-                    },
-                    "date": {
-                        "type": "string",
-                        "description": "An optional date (or date range) to fetch the weather for, e.g., '2023-09-12' or '2023-11-12 - 2023-11-15'. For current weather, this parameter can be omitted. Specify a range for upcoming days. ",
-                    }
-                },
-                "required": ["location"],
-            },
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "check_calendar",
-            "description": "Check the calendar for a given date. Give a very concise overview, and ask the user if they'd like to hear more.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "date": {
-                        "type": "string",
-                        "description": "The date to check, e.g., 2021-10-31. You can also give a range, e.g., 2021-10-31 - 2021-11-01",
-                    }
-                },
-                "required": ["date"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "set_reminder",
-            "description": "Set a reminder for a specified time",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "reminder_text": {
-                        "type": "string",
-                        "description": "The content of the reminder",
-                    },
-                    "reminder_time": {
-                        "type": "string",
-                        "description": "The time for the reminder in format 'YYYY-MM-DD HH:MM'",
-                    },
-                },
-                "required": ["reminder_text", "reminder_time"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "edit_reminder",
-            "description": "Edit an existing reminder",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "search_text": {
-                        "type": "string",
-                        "description": "Natural language text to describe the reminder to be edited",
-                    },
-                    "new_text": {
-                        "type": "string",
-                        "description": "The new content for the reminder (optional)",
-                        "optional": True,
-                    },
-                    "new_time": {
-                        "type": "string",
-                        "description": "The new time for the reminder in format 'YYYY-MM-DD HH:MM' (optional)",
-                        "optional": True,
-                    }
-                },
-                "required": ["search_text"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "list_unnotified_reminders",
-            "description": "List all reminders that have not yet been notified",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "dummy_variable": {
-                        "type": "string",
-                        "description": "This is a dummy variable to allow the function to be called without any parameters.",
-                    },
-                },
-            },
-        },
-    },
-]
-
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 REMINDERS_DB_FILE = 'reminders.json'
-
-def list_unnotified_reminders(display_reminders=False):
-    reminders = load_reminders()
-    if not reminders:
-        return "No reminders found. Please ask the user if they'd like to set a reminder. Don't call this function again when there are no reminders."
-    return json.dumps(
-        {"reminders": [rem for rem in reminders if not rem['notified']]}, 
-        indent=2, default=str
-    )
-
-def load_reminders():
-    if not os.path.exists(REMINDERS_DB_FILE):
-        return []
-    with open(REMINDERS_DB_FILE, 'r') as file:
-        return json.load(file)
-
-def save_reminders(reminders):
-    with open(REMINDERS_DB_FILE, 'w') as file:
-        json.dump(reminders, file, indent=2)
-        file.flush()
-        os.fsync(file.fileno())  # Force write to disk
-
-def add_reminder(reminder_text, reminder_time):
-    reminders = load_reminders()
-    reminder_id = 1 if not reminders else max(r['id'] for r in reminders) + 1
-    reminders.append({
-        'id': reminder_id,
-        'text': reminder_text,
-        'time': reminder_time,
-        'notified': False
-    })
-    save_reminders(reminders)
-    return f"Reminder set for {reminder_time} with text: {reminder_text}"
     
 def check_reminders():
     current_time = datetime.datetime.now().replace(second=0, microsecond=0)
@@ -267,199 +133,10 @@ def check_reminders():
 
     save_reminders(reminders)  # Update the reminders in the database
     
-from difflib import get_close_matches
-
-def get_closest_reminder_matches(search_text, threshold=0.5):
-    """
-    Find reminders with descriptions closely matching the given string.
-    
-    :param search_text: String to match against reminder descriptions.
-    :param threshold: Float, similarity ratio must be greater than this threshold to be considered a match.
-    :return: A list of potential reminders that match.
-    """
-    reminders = load_reminders()
-    descriptions = [r['text'] for r in reminders if not r['notified']]
-    matches = get_close_matches(search_text, descriptions, n=3, cutoff=threshold)
-    
-    # If exact match, return that reminder only
-    if search_text in descriptions:
-        matching_reminders = [r for r in reminders if r['text'] == search_text]
-        return (matching_reminders, True)
-
-    # Otherwise, return all close matches
-    matching_descriptions = set(matches)
-    matching_reminders = [r for r in reminders if r['text'] in matching_descriptions]
-
-    return (matching_reminders, False)
-    
-def edit_reminder(search_text, new_text=None, new_time=None):
-    reminders = load_reminders()
-    matched_reminders, exact_match = get_closest_reminder_matches(search_text)
-    print(f"Matching reminders: {matched_reminders}, Exact match: {exact_match}")
-
-    if not matched_reminders:
-        return "No matching reminder found."
-    elif exact_match or len(matched_reminders) == 1:
-        # If an exact match is found, or there is only one possible match, update the reminder
-        reminder_to_edit = matched_reminders[0]
-        print(f"Found reminder to edit: {reminder_to_edit}")
-
-        # Find the reminder in the list and update it
-        for index, rem in enumerate(reminders):
-            if rem['id'] == reminder_to_edit['id']:
-                print(f"Found reminder at index {index} to update.")
-                if new_time:
-                    rem['time'] = new_time
-                if new_text:
-                    rem['text'] = new_text
-                rem['notified'] = False  # Reset notification status
-                
-        save_reminders(reminders)
-        updated_reminders = load_reminders()
-        print(f"Updated reminders from file: {updated_reminders}")
-
-        # Find the reminder in the updated list for final confirmation
-        for rem in updated_reminders:
-            if rem['id'] == reminder_to_edit['id']:
-                print(f"Confirmed updated reminder from file: {rem}")
-                break
-
-        return "Your reminder has been successfully updated."
-    else:
-        # If multiple matches are found, explain to the user how to specify their choice
-        message = "No exact match found for editing a reminder. "\
-                  "Here are the top hits, please specify by saying, "\
-                  "for example, 'The first one' or 'The second one':\n"
-        message += "\n".join(f"{index + 1}: '{reminder['text']}' for {reminder['time']}"
-                             for index, reminder in enumerate(matched_reminders))
-        return message
-
 def reminder_daemon():
     while True:
         check_reminders()
         time.sleep(60)  # Wait for one minute before checking again
-
-def get_weather_data(location, date=None):
-    location = location.split(",")[0]  # Assuming the country is not needed in the API call
-
-    # Geocoding to get latitude and longitude
-    geocode_url = f"http://api.openweathermap.org/geo/1.0/direct?q={location}&appid={OPENWEATHER_API_KEY}"
-    geocode_response = requests.get(geocode_url).json()
-
-    if not geocode_response:
-        return json.dumps({"error": "Location not found"}, indent=2)
-
-    lat = geocode_response[0]['lat']
-    lon = geocode_response[0]['lon']
-
-    weather_api_url = f"https://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&exclude=minutely,hourly,alerts&appid={OPENWEATHER_API_KEY}&units=metric"
-
-    try:
-        # Fetch the weather data
-        response = requests.get(weather_api_url).json()
-
-        # Prepare the return data structure
-        response_data = {
-            "location": location,
-            "data": []
-        }
-
-        # Get current date for comparison
-        current_date = datetime.datetime.utcfromtimestamp(response['current']['dt'])
-        if date:
-            single_date = None  # variable for handling a single date
-            # Check if we have a date range or a single date
-            if ' - ' in date:
-                # User provided a date range
-                start_date_str, end_date_str = date.split(' - ')  # Safe to unpack
-                start_date = date_parser.parse(start_date_str.strip()).date()
-                end_date = date_parser.parse(end_date_str.strip()).date()
-                response_data['data'] = response['daily']  # assume you want all daily data
-                response_data['date'] = f"{start_date.strftime('%Y-%m-%d')} - {end_date.strftime('%Y-%m-%d')}"
-            else:
-                # User provided a single date
-                single_date = date_parser.parse(date.strip()).date()
-                response_data['date'] = single_date.strftime("%Y-%m-%d")
-
-            if single_date:  # Handle single date case differently
-                # Find and return the corresponding data
-                for weather_data in response['daily']:
-                    weather_date = datetime.datetime.utcfromtimestamp(weather_data['dt']).date()
-                    if weather_date == single_date:
-                        response_data['data'] = weather_data
-                        break
-            
-        else:
-            # No date specified, default to today's weather
-            response_data['date'] = datetime.datetime.utcfromtimestamp(response['current']['dt']).strftime('%Y-%m-%d')
-            response_data['data'] = {
-                'current': response['current'],
-                'daily_forecast': response['daily'][0]  # Today's forecast from the daily data
-            }
-
-        if not response_data['data']:
-            return json.dumps({"error": f"No weather data found for the date {date}"}, indent=2)
-        return json.dumps(response_data, indent=2)
-    except Exception as e:
-        return json.dumps({"error": str(e)}, indent=2)
-
-def authenticate_google_calendar_api():
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-    
-    service = build('calendar', 'v3', credentials=creds)
-    return service
-
-def check_calendar(date):
-    """Check the calendar for events on a given date or date range."""
-    service = authenticate_google_calendar_api()
-    date_range = date.split(" - ")
-    start_date_str = date_range[0]
-    end_date_str = date_range[1] if len(date_range) > 1 else start_date_str
-    try:
-        # Parse dates from strings and create date range for the query
-        time_min = datetime.datetime.fromisoformat(start_date_str).isoformat() + 'Z'
-        time_max = (datetime.datetime.fromisoformat(end_date_str) + datetime.timedelta(days=1)).isoformat() + 'Z'
-
-        # Call the Google Calendar API
-        events_result = service.events().list(calendarId='primary', timeMin=time_min,
-                                              timeMax=time_max, singleEvents=True,
-                                              orderBy='startTime').execute()
-        events = events_result.get('items', [])
-        print(f"Found {len(events)} events")
-
-        # Prepare the list of events in the required output format
-        event_list = [
-            {
-                "summary": event["summary"],
-                "location": event.get("location", "No location specified"),
-                "start": event["start"].get("dateTime", event["start"].get("date")),
-                "end": event["end"].get("dateTime", event["end"].get("date")),
-                "description": event.get("description", "No description provided")
-            } 
-            for event in events
-        ]
-
-        # Output the events for the given date range
-        return json.dumps({"date": date, "events": event_list})
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return json.dumps({"date": date, "error": str(e), "events": []})
 
 # Initialize PyAudio
 pa = pyaudio.PyAudio()
@@ -545,7 +222,17 @@ def get_chatgpt_response(text, function=False, function_name=None):
             "set_reminder": add_reminder,
             "edit_reminder": edit_reminder,
             "list_unnotified_reminders": list_unnotified_reminders,
+            "add_event_to_calendar": add_event_to_calendar,
+            "toggle_device" : toggle_entity,
+            "play_song_on_spotify": search_spotify_song,
         }
+        for tool_Call in tool_calls:
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": "You called a function with the following parameters" + tool_Call.function.name + " " + json.dumps(tool_Call.function.arguments),
+                }
+            )
 
         for tool_call in tool_calls:
             print(f"Tool call: {tool_call}")
@@ -666,6 +353,10 @@ def main():
 
         if keyword_index >= 0:
             print("Jarvis activated. Listening for your command...")
+            spotify_was_playing = False
+            if is_spotify_playing_on_device():
+                spotify_was_playing = True
+            toggle_spotify_playback()
             play_sound(LISTENING_SOUND)
             accumulated_frames = []
             num_silent_frames = 0
@@ -686,7 +377,9 @@ def main():
 
                 if num_silent_frames > 30:  # Stop capturing after a short period of silence
                     print("Done capturing.")
-                    play_sound(STOPPED_LISTENING_SOUND)
+                    # play_sound(STOPPED_LISTENING_SOUND)
+                    if spotify_was_playing:
+                        toggle_spotify_playback(force_play=True)
                     break
 
             save_audio(accumulated_frames)
@@ -695,9 +388,13 @@ def main():
             command = transcribe()
             print(f"You said: {command}")
             response = get_chatgpt_response(command)
+            if spotify_was_playing:
+                toggle_spotify_playback()
             stop_thinking_sound()
             play_sound(SUCCESS_SOUND)  # Play success sound before speaking out the response
             text_to_speech(response)
+            if spotify_was_playing:
+                toggle_spotify_playback(force_play=True)
 
     audio_stream.close()
     pa.terminate()
