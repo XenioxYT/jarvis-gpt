@@ -23,6 +23,7 @@ from utils.weather import get_weather_data
 from calendar_utils import check_calendar, add_event_to_calendar
 from utils.home_assistant import toggle_entity
 from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device
+from test import user_query
 
 load_dotenv()
 
@@ -84,7 +85,7 @@ messages = [
     {
         "role": "system",
         "content": "You are Jarvis, a voice-based personal assistant to Tom currently located in " + city + ". You are speaking to him now. "
-        "You are a voice assistant, so keep responses short and concise, but maintain all the important information. "
+        "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
         "You are equipped with a variety of tools, which you can use to perform various tasks. For example, you can play music on spotify for the user. Do not mention you are a text-based assistant. "
         "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
         "You CANNOT call a function after giving a text response, so DO NOT say thing like 'Please hold on for a moment', instead ask the user whether they'd like you to continue. "
@@ -135,8 +136,21 @@ def check_reminders():
     
 def reminder_daemon():
     while True:
+        # Check reminders at the start of the loop
         check_reminders()
-        time.sleep(60)  # Wait for one minute before checking again
+
+        # Calculate the current time
+        current_time = time.time()
+
+        # Calculate how many seconds have passed in the current minute
+        seconds_passed = current_time % 60
+
+        # Calculate how many seconds to sleep until the start of the next minute
+        # If it's exactly on the minute, sleep for a full 60 seconds
+        sleep_time = 60 - seconds_passed if seconds_passed != 0 else 60
+
+        # Sleep for the calculated duration
+        time.sleep(sleep_time)
 
 # Initialize PyAudio
 pa = pyaudio.PyAudio()
@@ -214,6 +228,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
     tool_calls = getattr(response_message, 'tool_calls', [])
     
     if tool_calls:
+        text_to_speech("Getting the requested information, please wait...")
         # Dictionary mapping function names to actual function implementations
         available_functions = {
             "get_weather_data": get_weather_data,
@@ -239,6 +254,8 @@ def get_chatgpt_response(text, function=False, function_name=None):
             function_name = tool_call.function.name
             function_args = json.loads(tool_call.function.arguments)
             print(f"Function name: {function_name}", f"Function args: {function_args}")
+            if function_name == "play_song_on_spotify":
+                text_to_speech("Connecting to your speakers, please wait...")
             
             if function_name in available_functions:
                 function_response = available_functions[function_name](**function_args)
@@ -377,24 +394,34 @@ def main():
 
                 if num_silent_frames > 30:  # Stop capturing after a short period of silence
                     print("Done capturing.")
-                    # play_sound(STOPPED_LISTENING_SOUND)
+                    play_sound(STOPPED_LISTENING_SOUND)
                     if spotify_was_playing:
                         toggle_spotify_playback(force_play=True)
                     break
 
             save_audio(accumulated_frames)
             print("Processing audio...")
-            play_sound(THINKING_SOUND)
+            # play_sound(THINKING_SOUND)
             command = transcribe()
             print(f"You said: {command}")
-            response = get_chatgpt_response(command)
-            if spotify_was_playing:
-                toggle_spotify_playback()
-            stop_thinking_sound()
-            play_sound(SUCCESS_SOUND)  # Play success sound before speaking out the response
-            text_to_speech(response)
-            if spotify_was_playing:
-                toggle_spotify_playback(force_play=True)
+            user_query_result = user_query(command)
+            print(f"User query result: {user_query_result}")
+            if user_query_result == "turn_on_device" or user_query_result == "turn_off_device":
+                toggle_entity("switch.desk_lamp_socket_1", switch=True if user_query_result == "turn_on_device" else False)
+                stop_thinking_sound()
+                if user_query_result == "turn_on_device":
+                    text_to_speech("Desk lamp turned on.")
+                else:
+                    text_to_speech("Desk lamp turned off.")
+            else:
+                response = get_chatgpt_response(command)
+                if spotify_was_playing:
+                    toggle_spotify_playback()
+                stop_thinking_sound()
+                play_sound(SUCCESS_SOUND)  # Play success sound before speaking out the response
+                text_to_speech(response)
+                if spotify_was_playing:
+                    toggle_spotify_playback(force_play=True)
 
     audio_stream.close()
     pa.terminate()
