@@ -163,7 +163,7 @@ tools = [
                 "properties": {
                     "search_term": {
                         "type": "string",
-                        "description": "The search term for the song, e.g., 'Shape of You'."
+                        "description": "The search term for the song, e.g., 'Shape of You - Ed Sheeran'."
                     },
                 },
             }
