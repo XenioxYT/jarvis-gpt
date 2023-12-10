@@ -139,7 +139,7 @@ tools = [
     {
         "type": "function",
         "function": {
-            "name": "toggle_device",
+            "name": "control_switch",
             "description": "Toggle the state of an entity in Home Assistant.",
             "parameters": {
                 "type": "object",
@@ -147,9 +147,13 @@ tools = [
                     "entity_id": {
                         "type": "string",
                         "description": "The entity ID to toggle. These entities are: switch.desk_lamp_socket_1'"
-                    }
+                    },
+                    "switch": {
+                        "type": "boolean",
+                        "description": "The switch parameter to turn the entity on or off. True for on, False for off.",
+                    },
                 },
-                "required": ["entity_id"]
+                "required": ["entity_id", "switch"],
             }
         }
     },
