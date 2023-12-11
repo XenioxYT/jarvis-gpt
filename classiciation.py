@@ -1,56 +1,72 @@
-# import re
+import nltk
+from nltk.tokenize import word_tokenize
+from transformers import BertTokenizer, BertModel, pipeline
+from nltk.util import ngrams
+import torch
+from langdetect import detect
+from utils.strings import common_bigrams, common_trigrams
+import string
 
-# def user_query(input):
-#     # Normalize the input string for easier processing
-#     input_normalized = input.lower().strip()
+# Ensure necessary resources from nltk are downloaded
+nltk.download('punkt')
 
-#     # Basic patterns to match various commands
-#     play_pattern = re.compile(r"\bplay\b|\bstart\b|\bresume\b")
-#     pause_pattern = re.compile(r"\bpause\b|\bhold\b")
-#     stop_pattern = re.compile(r"\bstop\b|\bend\b|\bquit\b")
-#     next_pattern = re.compile(r"\bnext\b|\bskip\b")
-#     previous_pattern = re.compile(r"\bprevious\b|\bback\b")
+# Initialize BERT tokenizer and model
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+model = BertModel.from_pretrained('bert-base-uncased')
 
-#     # Advanced pattern to capture details after 'play' command
-#     play_detail_pattern = re.compile(r"\bplay\s+(.*)")
+def remove_punctuation(text):
+    """
+    Remove punctuation from the text.
+    """
+    translator = str.maketrans('', '', string.punctuation)
+    return text.translate(translator)
 
-#     # Check if input matches basic commands
-#     if play_pattern.search(input_normalized):
-#         # Check for specific details after 'play' command
-#         detail_match = play_detail_pattern.search(input_normalized)
-#         if detail_match:
-#             # Extract and return the detail (e.g., artist or song name)
-#             return f"play_spotify('{detail_match.group(1)}')"
-#         else:
-#             return "play_spotify()"
+def is_english_text(text):
+    """
+    Enhanced multi-stage check to see if text:
+    A) Contains common patterns found in voice assistant interactions
+    B) Is semantically coherent
+    C) Is in English
+    """
+    # Language Check
+    try:
+        if detect(text) != 'en':
+            return False
+    except:
+        return False
 
-#     elif pause_pattern.search(input_normalized):
-#         return "pause_spotify()"
-    
-#     elif stop_pattern.search(input_normalized):
-#         return "stop_spotify()"
-    
-#     elif next_pattern.search(input_normalized):
-#         return "skip_song()"
-    
-#     elif previous_pattern.search(input_normalized):
-#         return "previous_song()"
-    
-#     else:
-#         return None
+    # Punctuation Normalization (if necessary)
+    text = remove_punctuation(text)
 
-# # Test the function with different inputs
-# test_queries = ["Play The Weeknd", "pause the music", "stop the track", "skip to the next song", "go to the previous track", "Just play something", "Do you play games?"]
-# for query in test_queries:
-#     print(f"Query: '{query}' - Command: {user_query(query)}")
+    # Tokenization
+    words = word_tokenize(text)
+    if len(words) == 0:
+        return False
 
+    # First Stage: N-gram Analysis
+    trigrams_in_text = set(ngrams(words, 3)) if len(words) >= 3 else set()
+    bigrams_in_text = set(ngrams(words, 2)) if len(words) >= 2 else set()
 
-from transformers import pipeline
+    if trigrams_in_text.intersection(common_trigrams) or bigrams_in_text.intersection(common_bigrams):
+        return True
+
+    # Second Stage: Semantic Coherence Check with BERT
+    inputs = tokenizer(text, return_tensors='pt')
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    embeddings = outputs.last_hidden_state[:, 0, :]
+    if torch.norm(embeddings) < 6.5:  # Adjusted threshold
+        return False
+
+    return True
 
 # Initialize the intent classification model
 intent_classifier = pipeline("zero-shot-classification", model="typeform/distilbert-base-uncased-mnli")
 
 def user_query(input):
+    if input == "":
+        return None
     # Define potential intents
     spotify_commands = ["resume music", "pause music", "stop music", "turn on device", "turn off device"]
     other_intents = ["general conversation", "other task"]
