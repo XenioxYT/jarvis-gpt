@@ -353,6 +353,7 @@ def handle_follow_ups(audio_stream, vad):
     # This function will handle follow-up interactions repeatedly
     while True:
         play_sound(LISTENING_SOUND)
+        time.sleep(1)
         print("Listening for a follow-up command...")
         accumulated_frames = []
         num_silent_frames = 0
