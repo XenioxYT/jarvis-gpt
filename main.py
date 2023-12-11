@@ -23,7 +23,7 @@ from utils.weather import get_weather_data
 from calendar_utils import check_calendar, add_event_to_calendar
 from utils.home_assistant import toggle_entity
 from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device, play_spotify, pause_spotify
-from classiciation import user_query
+from classiciation import user_query, is_english_text
 
 load_dotenv()
 
@@ -84,7 +84,7 @@ city = get_location()
 messages = [
     {
         "role": "system",
-        "content": "You are Jarvis, a voice-based personal assistant to Tom currently located in " + city + ". You are speaking to him now. "
+        "content": "You are Jarvis, a voice-based personal assistant to Tom currently located in " + city + " and based off the GPT-4 AI model. You are speaking to him now. "
         "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
         "You are equipped with a variety of tools, which you can use to perform various tasks. For example, you can play music on spotify for the user. Do not mention you are a text-based assistant. "
         "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
@@ -308,11 +308,11 @@ def text_to_speech(text):
     # Use a British accent voice, for example "en-GB-Wavenet-B"
     voice = texttospeech.VoiceSelectionParams(
         language_code='en-GB',
-        name='en-GB-Wavenet-B',  # You can choose a different British Wavenet voice if desired
-        ssml_gender=texttospeech.SsmlVoiceGender.MALE  # Assuming Jarvis has a male voice
+        name='en-GB-Neural2-B',  # You can choose a different British Wavenet voice if desired
+        # ssml_gender=texttospeech.SsmlVoiceGender.MALE
     )
 
-    # Use LINEAR16 audio encoding for high quality
+    # Use  audio encoding for high quality
     audio_config = texttospeech.AudioConfig(
         audio_encoding=texttospeech.AudioEncoding.LINEAR16
     )
@@ -349,6 +349,54 @@ def text_to_speech(text):
     stream.close()
     audio_buffer.close()
     p.terminate()
+    
+def handle_follow_ups(audio_stream, vad):
+    # This function will handle follow-up interactions repeatedly
+    while True:
+        play_sound(LISTENING_SOUND)
+        print("Listening for a follow-up command...")
+        accumulated_frames = []
+        num_silent_frames = 0
+        vad_frame_len = int(0.02 * 16000)
+
+        while num_silent_frames < 50:  # Adjust the threshold as needed
+            pcm = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
+            pcm_unpacked = struct.unpack_from("h" * porcupine.frame_length, pcm)
+            vad_buffer = b''.join(struct.pack('h', frame) for frame in pcm_unpacked)
+            is_speech = vad.is_speech(vad_buffer[:2 * vad_frame_len], 16000)
+
+            if is_speech:
+                num_silent_frames = 0
+                accumulated_frames.append(vad_buffer)
+            else:
+                num_silent_frames += 1
+
+            if len(accumulated_frames) >= 16000 * 15 / (2 * vad_frame_len):  # Stop after 15 seconds of recording
+                break
+
+        if accumulated_frames:
+            save_audio(accumulated_frames)
+            play_sound(STOPPED_LISTENING_SOUND)
+            print("Processing follow-up audio...")
+            follow_up_command = transcribe()
+            
+            if not follow_up_command:
+                print("No follow-up command detected, stopping the follow-up loop.")
+                break  # Exit the follow-up loop if no command is detected or a stop condition is met
+
+            print(f"Follow-up command: {follow_up_command}")
+
+            # Now we check if the follow-up command is discernible English text
+            # Assuming we have a function 'is_english_text' to check the transcribed text
+            if is_english_text(follow_up_command):
+                # Process the follow-up command as needed, similar to the initial command
+                response = get_chatgpt_response(follow_up_command)
+                text_to_speech(response)
+            else:
+                print("The follow-up command does not appear to be valid English.")
+        else:
+            print("No speech detected, stopping the follow-up loop.")
+            break  # Exit the follow-up loop if no speech is detected
 
 def main():
     audio_stream = pa.open(
@@ -429,6 +477,8 @@ def main():
                 text_to_speech(response)
                 if spotify_was_playing:
                     toggle_spotify_playback(force_play=True)
+                # After responding, start listening for a follow-up response
+            handle_follow_ups(audio_stream, vad)
 
     audio_stream.close()
     pa.terminate()
