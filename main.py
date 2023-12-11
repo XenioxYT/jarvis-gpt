@@ -23,7 +23,7 @@ from utils.weather import get_weather_data
 from calendar_utils import check_calendar, add_event_to_calendar
 from utils.home_assistant import toggle_entity
 from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device, play_spotify, pause_spotify
-from test import user_query
+from classiciation import user_query
 
 load_dotenv()
 
@@ -228,7 +228,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
     tool_calls = getattr(response_message, 'tool_calls', [])
     
     if tool_calls:
-        text_to_speech("Interacting with your devices, please wait...")
+        text_to_speech("I'm accessing external tools to complete your request, please hold on for a moment.")
         # Dictionary mapping function names to actual function implementations
         available_functions = {
             "get_weather_data": get_weather_data,
@@ -255,7 +255,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
             function_args = json.loads(tool_call.function.arguments)
             print(f"Function name: {function_name}", f"Function args: {function_args}")
             if function_name == "play_song_on_spotify":
-                text_to_speech("Connecting to your speakers, please wait...")
+                text_to_speech("Connecting to your speakers, hold on tight")
             
             if function_name in available_functions:
                 function_response = available_functions[function_name](**function_args)
