@@ -477,10 +477,9 @@ def main():
                 play_sound(SUCCESS_SOUND)  # Play success sound before speaking out the response
                 text_to_speech(response)
                 if spotify_was_playing:
-                    handle_follow_ups(audio_stream, vad, response)
+                    # handle_follow_ups(audio_stream, vad, response)
                     toggle_spotify_playback(force_play=True)
-                else:
-                    handle_follow_ups(audio_stream, vad, response)
+                    # handle_follow_ups(audio_stream, vad, response)
                 # After responding, start listening for a follow-up response
                 
 
