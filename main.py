@@ -22,7 +22,7 @@ from utils.reminders import add_reminder, edit_reminder, list_unnotified_reminde
 from utils.weather import get_weather_data
 from calendar_utils import check_calendar, add_event_to_calendar
 from utils.home_assistant import toggle_entity
-from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device
+from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device, play_spotify, pause_spotify
 from test import user_query
 
 load_dotenv()
@@ -228,7 +228,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
     tool_calls = getattr(response_message, 'tool_calls', [])
     
     if tool_calls:
-        text_to_speech("Getting the requested information, please wait...")
+        text_to_speech("Interacting with your devices, please wait...")
         # Dictionary mapping function names to actual function implementations
         available_functions = {
             "get_weather_data": get_weather_data,
@@ -406,13 +406,20 @@ def main():
             print(f"You said: {command}")
             user_query_result = user_query(command)
             print(f"User query result: {user_query_result}")
-            if user_query_result == "turn_on_device" or user_query_result == "turn_off_device":
-                toggle_entity("switch.desk_lamp_socket_1", switch=True if user_query_result == "turn_on_device" else False)
+            if user_query_result in ["play_spotify", "pause_spotify", "turn_on_device", "turn_off_device"]:
                 stop_thinking_sound()
                 if user_query_result == "turn_on_device":
+                    toggle_entity("switch.desk_lamp_socket_1", switch=True)
                     text_to_speech("Desk lamp turned on.")
-                else:
+                elif user_query_result == "turn_off_device":
+                    toggle_entity("switch.desk_lamp_socket_1", switch=False)
                     text_to_speech("Desk lamp turned off.")
+                elif user_query_result == "play_spotify":
+                    play_spotify()
+                    text_to_speech("Spotify playback started.")
+                elif user_query_result == "pause_spotify":
+                    pause_spotify()
+                    text_to_speech("Spotify playback paused.")
             else:
                 response = get_chatgpt_response(command)
                 if spotify_was_playing:
