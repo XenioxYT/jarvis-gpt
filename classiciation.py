@@ -6,6 +6,16 @@ import torch
 from langdetect import detect
 from utils.strings import common_bigrams, common_trigrams
 import string
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+api_key = os.getenv("OPENAI_API_KEY")
+api_base = os.getenv("OPENAI_API_BASE")
+
+llama_client = OpenAI(base_url=api_base, api_key=api_key)
 
 # Ensure necessary resources from nltk are downloaded
 nltk.download('punkt')
@@ -21,45 +31,34 @@ def remove_punctuation(text):
     translator = str.maketrans('', '', string.punctuation)
     return text.translate(translator)
 
-def is_english_text(text):
-    """
-    Enhanced multi-stage check to see if text:
-    A) Contains common patterns found in voice assistant interactions
-    B) Is semantically coherent
-    C) Is in English
-    """
-    # Language Check
-    try:
-        if detect(text) != 'en':
-            return False
-    except:
-        return False
-
-    # Punctuation Normalization (if necessary)
-    text = remove_punctuation(text)
-
-    # Tokenization
-    words = word_tokenize(text)
-    if len(words) == 0:
-        return False
-
-    # First Stage: N-gram Analysis
-    trigrams_in_text = set(ngrams(words, 3)) if len(words) >= 3 else set()
-    bigrams_in_text = set(ngrams(words, 2)) if len(words) >= 2 else set()
-
-    if trigrams_in_text.intersection(common_trigrams) or bigrams_in_text.intersection(common_bigrams):
+def is_english_text(user, previous_response):
+    message = [
+        {
+            "role": "user",
+            "content": "You are an AI designed to class intent of a sentace for a voice assistant. You class whether the sentence makes sense regarding current context and language understanding. DO NOT give any other output other than JSON. Here is how you should format your output:"
+            "{"
+            "    'followup': true"
+            "}"
+            "where true is if the output is a follow up to the previous response from the assistant. This can be anything from a follow up question to a 'Thank you'', expressing gratitude for the answer, so long as it makes sense in the context. The assistant reply is: '" + previous_response + "'"
+            "And the user input:"
+            "'"+ user + "'"
+        }
+    ]
+    response = llama_client.chat.completions.create(
+        model="mistral-7b",
+        messages=message
+    )
+    print(response)
+    classification = response = response.choices[0].message.content
+    if "true" in classification:
+        print("followup")
         return True
-
-    # Second Stage: Semantic Coherence Check with BERT
-    inputs = tokenizer(text, return_tensors='pt')
-    with torch.no_grad():
-        outputs = model(**inputs)
-
-    embeddings = outputs.last_hidden_state[:, 0, :]
-    if torch.norm(embeddings) < 6.5:  # Adjusted threshold
+    else:
+        print("not followup")
         return False
 
-    return True
+#test the function
+print(is_english_text("Hello", "Hello, how are you?"))
 
 # Initialize the intent classification model
 intent_classifier = pipeline("zero-shot-classification", model="typeform/distilbert-base-uncased-mnli")

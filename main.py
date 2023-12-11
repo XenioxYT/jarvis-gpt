@@ -350,7 +350,7 @@ def text_to_speech(text):
     audio_buffer.close()
     p.terminate()
     
-def handle_follow_ups(audio_stream, vad):
+def handle_follow_ups(audio_stream, vad, response):
     # This function will handle follow-up interactions repeatedly
     while True:
         play_sound(LISTENING_SOUND)
@@ -389,7 +389,7 @@ def handle_follow_ups(audio_stream, vad):
 
             # Now we check if the follow-up command is discernible English text
             # Assuming we have a function 'is_english_text' to check the transcribed text
-            if is_english_text(follow_up_command):
+            if is_english_text(follow_up_command, response):
                 # Process the follow-up command as needed, similar to the initial command
                 response = get_chatgpt_response(follow_up_command)
                 text_to_speech(response)
@@ -477,7 +477,7 @@ def main():
                 play_sound(SUCCESS_SOUND)  # Play success sound before speaking out the response
                 text_to_speech(response)
                 if spotify_was_playing:
-                    handle_follow_ups(audio_stream, vad)
+                    handle_follow_ups(audio_stream, vad, response)
                     toggle_spotify_playback(force_play=True)
                 else:
                     handle_follow_ups(audio_stream, vad)
