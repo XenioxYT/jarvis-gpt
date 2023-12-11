@@ -6,6 +6,7 @@ import time
 import pyaudio
 import wave
 import requests
+import torch
 import webrtcvad
 import pvporcupine
 from dotenv import load_dotenv
@@ -15,6 +16,7 @@ import pyttsx3
 import whisper
 import io
 import datetime
+import simpleaudio as sa
 
 # imports for the tools
 from utils.tools import tools
@@ -26,8 +28,6 @@ from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spoti
 from classiciation import user_query, is_english_text
 
 load_dotenv()
-
-import simpleaudio as sa
 
 thinking_sound_stop_event = threading.Event()
 
@@ -112,7 +112,8 @@ THINKING_SOUND = "./thinking.wav"
 SUCCESS_SOUND = "./success.wav"
 
 client = texttospeech.TextToSpeechClient()
-model = whisper.load_model("base")
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = whisper.load_model("large").to(device)
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
@@ -476,9 +477,12 @@ def main():
                 play_sound(SUCCESS_SOUND)  # Play success sound before speaking out the response
                 text_to_speech(response)
                 if spotify_was_playing:
+                    handle_follow_ups(audio_stream, vad)
                     toggle_spotify_playback(force_play=True)
+                else:
+                    handle_follow_ups(audio_stream, vad)
                 # After responding, start listening for a follow-up response
-            handle_follow_ups(audio_stream, vad)
+                
 
     audio_stream.close()
     pa.terminate()
