@@ -112,7 +112,6 @@ THINKING_SOUND = "./thinking.wav"
 SUCCESS_SOUND = "./success.wav"
 
 client = texttospeech.TextToSpeechClient()
-tts_engine = pyttsx3.init()
 model = whisper.load_model("base")
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
