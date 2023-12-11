@@ -480,7 +480,7 @@ def main():
                     handle_follow_ups(audio_stream, vad, response)
                     toggle_spotify_playback(force_play=True)
                 else:
-                    handle_follow_ups(audio_stream, vad)
+                    handle_follow_ups(audio_stream, vad, response)
                 # After responding, start listening for a follow-up response
                 
 
