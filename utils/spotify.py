@@ -91,7 +91,7 @@ def toggle_spotify_playback(force_play=False):
     
     :param force_play: Boolean to determine whether to toggle playback regardless of the current state.
     """
-    device_name = 'media_player.tom_s_room'
+    device_name = 'media_player.spotify_tom'
     token = os.getenv('HASS_TOKEN')
     ha_url = os.getenv('HASS_URL')
 
@@ -146,3 +146,55 @@ def is_spotify_playing_on_device():
     else:
         print('Failed to retrieve the state of the Spotify player.')
         return False
+    
+def play_spotify():
+    """
+    Play Spotify on a specified media player in Home Assistant.
+    """
+    device_name = 'media_player.spotify_tom'
+    token = os.getenv('HASS_TOKEN')
+    ha_url = os.getenv('HASS_URL')
+
+    # Headers for the HTTP request
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+
+    # Send the play command
+    response = requests.post(
+        f'{ha_url}/api/services/media_player/media_play',
+        json={'entity_id': device_name},
+        headers=headers,
+    )
+
+    if response.status_code == 200:
+        print('Spotify playback started.')
+    else:
+        print('Failed to start Spotify playback.')
+
+def pause_spotify():
+    """
+    Pause Spotify on a specified media player in Home Assistant.
+    """
+    device_name = 'media_player.spotify_tom'
+    token = os.getenv('HASS_TOKEN')
+    ha_url = os.getenv('HASS_URL')
+
+    # Headers for the HTTP request
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+
+    # Send the pause command
+    response = requests.post(
+        f'{ha_url}/api/services/media_player/media_pause',
+        json={'entity_id': device_name},
+        headers=headers,
+    )
+
+    if response.status_code == 200:
+        print('Spotify playback paused.')
+    else:
+        print('Failed to pause Spotify playback.')
