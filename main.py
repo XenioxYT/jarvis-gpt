@@ -7,6 +7,7 @@ import time
 import pyaudio
 import wave
 import requests
+import numpy as np
 import torch
 import webrtcvad
 import queue as thread_queue
@@ -389,8 +390,24 @@ def text_to_speech(text):
         audio_config=audio_config
     )
 
-    # First, save the audio to a buffer
-    audio_buffer = io.BytesIO(response.audio_content)
+    fade_in_duration = 0.2  # Duration of the fade-in effect in seconds
+    # Apply fade-in to the beginning of the audio
+    audio_data = np.frombuffer(response.audio_content, dtype=np.int16)
+    fade_in_samples = int(fade_in_duration * 24000)  # Number of samples over which to apply the fade-in
+    fade_in_curve = np.linspace(0, 1, fade_in_samples)
+    audio_data[:fade_in_samples] *= fade_in_curve
+
+    # Convert the audio data back to bytes
+    modified_audio_content = audio_data.tobytes()
+
+    # First, save the modified audio to a buffer
+    audio_buffer = io.BytesIO(modified_audio_content)
+
+    # Then, play the audio buffer using PyAudio
+    # Define PyAudio stream callback for asynchronous playback
+    def callback(in_data, frame_count, time_info, status):
+        data = audio_buffer.read(frame_count * 2)  # 2 bytes per sample for LINEAR16
+        return (data, pyaudio.paContinue)
 
     # Then, play the audio buffer using PyAudio
     # Define PyAudio stream callback for asynchronous playback
