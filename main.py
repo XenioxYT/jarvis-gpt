@@ -391,8 +391,8 @@ def text_to_speech(text):
     )
 
     fade_in_duration = 0.2  # Duration of the fade-in effect in seconds
-    # Apply fade-in to the beginning of the audio
-    audio_data = np.frombuffer(response.audio_content, dtype=np.int16)
+    # Convert the audio content to a numpy array and make it writable
+    audio_data = np.frombuffer(response.audio_content, dtype=np.int16).copy()
     fade_in_samples = int(fade_in_duration * 24000)  # Number of samples over which to apply the fade-in
     fade_in_curve = np.linspace(0, 1, fade_in_samples)
     audio_data[:fade_in_samples] *= fade_in_curve
