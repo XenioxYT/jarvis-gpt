@@ -87,6 +87,7 @@ messages = [
     {
         "role": "system",
         "content": "You are Jarvis, a voice-based personal assistant to Tom currently located in " + city + " and based off the GPT-4 AI model. You are speaking to him now. "
+        "Your first sentence MUST be between 5-10 words long. "
         "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
         "You are equipped with a variety of tools, which you can use to perform various tasks. For example, you can play music on spotify for the user. Do not mention you are a text-based assistant. "
         "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
@@ -242,6 +243,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
     
     completion = ""
     first_sentence_processed = False
+    first_sentence_processed_second_response = False
     tool_calls = []
 
     for chunk in response:
@@ -333,6 +335,15 @@ def get_chatgpt_response(text, function=False, function_name=None):
                 if delta.content or delta.content=='':
                     completion += chunk.choices[0].delta.content
                     print(completion)
+
+                    if not first_sentence_processed_second_response and any(punctuation in completion for punctuation in ["!", ".", "?"]):
+                        string1, rest = split_first_sentence(completion)
+                        if string1:
+                            # Start the text-to-speech function in a separate thread
+                            tts_thread = threading.Thread(target=text_to_speech_thread, args=(string1,))
+                            tts_thread.start()
+                            completion = rest  # Reset completion to contain only the remaining text
+                            first_sentence_processed_second_response = True
             messages.append(
                 {
                     "role": "assistant",
@@ -340,6 +351,8 @@ def get_chatgpt_response(text, function=False, function_name=None):
                 }
             )
             # Assume that we return the final response text after the tool call handling
+            if tts_thread.is_alive():
+                tts_thread.join()
             return completion
     else:
         messages.append(
@@ -351,7 +364,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
         # Return the direct response text when no tool calls are needed
         if tts_thread.is_alive():
             tts_thread.join()
-            return completion
+        return completion
 
 # Function to convert text to speech using Google Cloud TTS
 def text_to_speech(text):
@@ -507,34 +520,34 @@ def main():
             # play_sound(THINKING_SOUND)
             command = transcribe()
             print(f"You said: {command}")
-            user_query_result = user_query(command)
-            print(f"User query result: {user_query_result}")
-            if user_query_result in ["resume_music", "pause_music", "turn_on_device", "turn_off_device"]:
-                stop_thinking_sound()
-                if user_query_result == "turn_on_device":
-                    toggle_entity("switch.desk_lamp_socket_1", switch=True)
-                    text_to_speech("Desk lamp turned on.")
-                elif user_query_result == "turn_off_device":
-                    toggle_entity("switch.desk_lamp_socket_1", switch=False)
-                    text_to_speech("Desk lamp turned off.")
-                elif user_query_result == "resume_music":
-                    play_spotify()
-                    text_to_speech("Spotify playback started.")
-                elif user_query_result == "pause_music":
-                    pause_spotify()
-                    text_to_speech("Spotify playback paused.")
-            else:
-                response = get_chatgpt_response(command)
-                if spotify_was_playing:
-                    toggle_spotify_playback()
-                stop_thinking_sound()
-                play_sound(SUCCESS_SOUND)  # Play success sound before speaking out the response
-                text_to_speech(response)
-                if spotify_was_playing:
-                    # handle_follow_ups(audio_stream, vad, response)
-                    toggle_spotify_playback(force_play=True)
-                    # handle_follow_ups(audio_stream, vad, response)
-                # After responding, start listening for a follow-up response
+            # user_query_result = user_query(command)
+            # print(f"User query result: {user_query_result}")
+            # if user_query_result in ["resume_music", "pause_music", "turn_on_device", "turn_off_device"]:
+            #     stop_thinking_sound()
+            #     if user_query_result == "turn_on_device":
+            #         toggle_entity("switch.desk_lamp_socket_1", switch=True)
+            #         text_to_speech("Desk lamp turned on.")
+            #     elif user_query_result == "turn_off_device":
+            #         toggle_entity("switch.desk_lamp_socket_1", switch=False)
+            #         text_to_speech("Desk lamp turned off.")
+            #     elif user_query_result == "resume_music":
+            #         play_spotify()
+            #         text_to_speech("Spotify playback started.")
+            #     elif user_query_result == "pause_music":
+            #         pause_spotify()
+            #         text_to_speech("Spotify playback paused.")
+            # else:
+            response = get_chatgpt_response(command)
+            if spotify_was_playing:
+                toggle_spotify_playback()
+            stop_thinking_sound()
+            # play_sound(SUCCESS_SOUND)  # Play success sound before speaking out the response
+            text_to_speech(response)
+            if spotify_was_playing:
+                # handle_follow_ups(audio_stream, vad, response)
+                toggle_spotify_playback(force_play=True)
+                # handle_follow_ups(audio_stream, vad, response)
+            # After responding, start listening for a follow-up response
                 
 
     audio_stream.close()
