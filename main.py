@@ -84,7 +84,7 @@ city = get_location()
 messages = [
     {
         "role": "system",
-        "content": "You are Jarvis, a voice-based personal assistant to Tom currently located in " + city + " and based off the GPT-4 AI model. You are speaking to him now. "
+        "content": ("You are Jarvis, a voice-based personal assistant to Tom currently located in " + city + " and based off the GPT-4 AI model. You are speaking to him now. "
         "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
         "You are equipped with a variety of tools, which you can use to perform various tasks. For example, you can play music on spotify for the user. Do not mention you are a text-based assistant. "
         "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
@@ -95,6 +95,7 @@ messages = [
         "The date and time is provided at the beginning of the message. This indicates the current date and time, and is used to give you a reference point. "
         "Use this as well to give a sense of time passing and time-contextual responses. "
         "The current date and time is: " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
     },
 ]
 
@@ -455,7 +456,7 @@ def main():
             print(f"You said: {command}")
             user_query_result = user_query(command)
             print(f"User query result: {user_query_result}")
-            if user_query_result in ["play_spotify", "pause_spotify", "turn_on_device", "turn_off_device"]:
+            if user_query_result in ["resume_music", "pause_music", "turn_on_device", "turn_off_device"]:
                 stop_thinking_sound()
                 if user_query_result == "turn_on_device":
                     toggle_entity("switch.desk_lamp_socket_1", switch=True)
@@ -463,10 +464,10 @@ def main():
                 elif user_query_result == "turn_off_device":
                     toggle_entity("switch.desk_lamp_socket_1", switch=False)
                     text_to_speech("Desk lamp turned off.")
-                elif user_query_result == "play_spotify":
+                elif user_query_result == "resume_music":
                     play_spotify()
                     text_to_speech("Spotify playback started.")
-                elif user_query_result == "pause_spotify":
+                elif user_query_result == "pause_music":
                     pause_spotify()
                     text_to_speech("Spotify playback paused.")
             else:
