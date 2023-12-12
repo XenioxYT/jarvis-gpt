@@ -1,11 +1,4 @@
-import nltk
-from nltk.tokenize import word_tokenize
-from transformers import BertTokenizer, BertModel, pipeline
-from nltk.util import ngrams
-import torch
-from langdetect import detect
 from utils.strings import common_bigrams, common_trigrams
-import string
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
@@ -17,31 +10,19 @@ api_base = os.getenv("OPENAI_API_BASE")
 
 llama_client = OpenAI(base_url=api_base, api_key=api_key)
 
-# Ensure necessary resources from nltk are downloaded
-nltk.download('punkt')
-
-# Initialize BERT tokenizer and model
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertModel.from_pretrained('bert-base-uncased')
-
-def remove_punctuation(text):
-    """
-    Remove punctuation from the text.
-    """
-    translator = str.maketrans('', '', string.punctuation)
-    return text.translate(translator)
-
 def is_english_text(user, previous_response):
     message = [
         {
             "role": "user",
-            "content": "You are an AI designed to class intent of a sentace for a voice assistant. You class whether the sentence makes sense regarding current context and language understanding. DO NOT give any other output other than JSON. Here is how you should format your output:"
+            "content": (
+            "You are an AI designed to class intent of a sentace for a voice assistant. You class whether the sentence makes sense regarding current context and language understanding. DO NOT give any other output other than JSON. Here is how you should format your output:"
             "{"
             "    'followup': true"
             "}"
             "where true is if the output is a follow up to the previous response from the assistant. This can be anything from a follow up question to a 'Thank you'', expressing gratitude for the answer, so long as it makes sense in the context. The assistant reply is: '" + previous_response + "'"
             "And the user input:"
             "'"+ user + "'"
+            )
         }
     ]
     response = llama_client.chat.completions.create(
@@ -57,60 +38,40 @@ def is_english_text(user, previous_response):
         print("not followup")
         return False
 
-#test the function
-print(is_english_text("Hello", "Hello, how are you?"))
-
-# Initialize the intent classification model
-intent_classifier = pipeline("zero-shot-classification", model="typeform/distilbert-base-uncased-mnli")
-
 def user_query(input):
-    if input == "":
-        return None
-    # Define potential intents
-    spotify_commands = ["resume music", "pause music", "stop music", "turn on device", "turn off device"]
-    other_intents = ["general conversation", "other task"]
-
-    # Classify the intent of the input
-    result = intent_classifier(input, spotify_commands + other_intents)
-    print(result)
-
-    # Extract the top intent where the score is above 0.75
-    for i in range(len(result["scores"])):
-        if result["scores"][i] > 0.75:
-            top_intent = result["labels"][i]
-            break
-        else:
-            top_intent = None
-
-    # Map top intent to Spotify commands
-    if top_intent == "resume music":
-        return "play_spotify"
-    
-    elif top_intent in ["pause music", "stop music"]:
-        return "pause_spotify"
-    
-    elif top_intent in ["skip song", "next song"]:
+    message = [
+        {
+            "role": "user",
+            "content": (
+                "You are an AI designed to classify the intent of a voice command for a virtual assistant. "
+                "Your task is to analyze the user command and determine the specific action the user wants to perform. "
+                "These actions include playing music, pausing music, skipping songs, turning devices on or off. "
+                "Provide your classification in a JSON format like this: "
+                "{'intent': 'play_music'}, where 'intent' is the classified action."
+                "These are the possible intents: "
+                "resume_music, pause_music, skip_song, previous_song, turn_on_device, turn_off_device"
+                "Set intent to None if the command does not fit this list or if the command is a false positive, for example 'Play my favorite song' is not a command."
+                "The user command is: '" + input + "'"
+            )
+        }
+    ]
+    response = llama_client.chat.completions.create(
+        model="mistral-7b",
+        messages=message
+    )
+    print(response)
+    classification = response = response.choices[0].message.content
+    if "resume_music" in classification:
+        return "resume_music"
+    if "pause_music" in classification:
+        return "pause_music"
+    if "skip_song" in classification:
         return "skip_song"
-    
-    elif top_intent == "previous song":
+    if "previous_song" in classification:
         return "previous_song"
-    
-    elif top_intent == "turn on device":
+    if "turn_on_device" in classification:
         return "turn_on_device"
-    
-    elif top_intent == "turn off device":
+    if "turn_off_device" in classification:
         return "turn_off_device"
-    
     else:
         return None
-
-# Test the function
-# test_queries = ["Play The Weeknd", "pause the music", "stop the track", "skip to the next song", "Do you play games?"]
-# test_queries = [
-#     "turn on the lights",
-#     "turn off the lights",
-#     "turn on the desk lamp",
-# ]
-
-# for query in test_queries:
-#     print(f"Query: '{query}' - Command: {user_query(query)}")
