@@ -279,7 +279,8 @@ def get_chatgpt_response(text, function=False, function_name=None):
                     tc["function"]["arguments"] += tcchunk.function.arguments
                     print(tc["function"]["arguments"])
     if tool_calls:
-        text_to_speech("Connecting to the internet")
+        tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Connecting to the internet",))
+        tts_thread_function.start()
 
         # Dictionary mapping function names to actual function implementations
         available_functions = {
@@ -302,24 +303,24 @@ def get_chatgpt_response(text, function=False, function_name=None):
             print(f"Function name: {function_name}", f"Function args: {function_args}")
 
             if function_name == "play_song_on_spotify":
+                if tts_thread_function.is_alive():
+                    tts_thread_function.join()
                 tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Connecting to your speakers...",))
                 tts_thread_function.start()
             elif function_name == "set_reminder":
-                # reminder function takes reminder_text and reminder_time as arguments
-                #select reminder_text
-                reminder_text_selected = function_args['reminder_text']
-                reminder_time_selected = function_args['reminder_time']
-                tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Setting a reminder for " + reminder_text_selected + " at " + reminder_time_selected,))
+                tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Accessing reminders...",))
                 tts_thread_function.start()
                 
             elif function_name == "add_event_to_calendar":
-                # reminder function takes reminder_text and reminder_time as arguments
-                #select reminder_text
+                if tts_thread_function.is_alive():
+                    tts_thread_function.join()
                 event_name = function_args['title']
                 tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Adding " + event_name + " to your calendar...",))
                 tts_thread_function.start()
             
             elif function_name == "get_weather_data":
+                if tts_thread_function.is_alive():
+                    tts_thread_function.join()
                 tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Getting live weather data...",))
                 tts_thread_function.start()
 
