@@ -394,8 +394,11 @@ def text_to_speech(text):
     # Convert the audio content to a numpy array and make it writable
     audio_data = np.frombuffer(response.audio_content, dtype=np.int16).copy()
     fade_in_samples = int(fade_in_duration * 24000)  # Number of samples over which to apply the fade-in
-    fade_in_curve = np.linspace(0, 1, fade_in_samples)
-    audio_data[:fade_in_samples] *= fade_in_curve
+    fade_in_curve = np.linspace(0, 1, fade_in_samples, dtype=np.float64)
+
+    # Apply the fade-in effect
+    for i in range(fade_in_samples):
+        audio_data[i] = np.int16(float(audio_data[i]) * fade_in_curve[i])
 
     # Convert the audio data back to bytes
     modified_audio_content = audio_data.tobytes()
