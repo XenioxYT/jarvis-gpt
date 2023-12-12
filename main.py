@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import struct
 import threading
 import time
@@ -202,6 +203,21 @@ def transcribe(filename='temp.wav'):
     result = model.transcribe(filename, language="en")
     return result["text"]
 
+def split_first_sentence(text):
+    # This regex looks for a period, exclamation mark, or question mark followed by a space and an uppercase letter.
+    match = re.search(r'(?<=[.!?])\s+(?=[A-Z])', text)
+    if match:
+        index = match.start()  # No need to add 1 since we want to keep the punctuation with the first sentence
+        first_sentence = text[:index].strip()
+        rest_of_text = text[index:].strip()
+        return first_sentence, rest_of_text
+    else:
+        return text, ''
+
+def text_to_speech_thread(text):
+    # This function will run in a separate thread
+    text_to_speech(text)
+
 # Function to get response from ChatGPT, making any necessary tool calls
 def get_chatgpt_response(text, function=False, function_name=None):
     if function:
@@ -225,6 +241,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
     )
     
     completion = ""
+    first_sentence_processed = False
     tool_calls = []
 
     for chunk in response:
@@ -232,6 +249,15 @@ def get_chatgpt_response(text, function=False, function_name=None):
         if delta.content or delta.content=='':
             completion += chunk.choices[0].delta.content
             print(completion)
+            
+            if not first_sentence_processed and any(punctuation in completion for punctuation in ["!", ".", "?"]):
+                string1, rest = split_first_sentence(completion)
+                if string1:
+                    # Start the text-to-speech function in a separate thread
+                    tts_thread = threading.Thread(target=text_to_speech_thread, args=(string1,))
+                    tts_thread.start()
+                    completion = rest  # Reset completion to contain only the remaining text
+                    first_sentence_processed = True
         
         if chunk.choices[0].delta.tool_calls:
             tcchunklist = delta.tool_calls
@@ -323,7 +349,9 @@ def get_chatgpt_response(text, function=False, function_name=None):
             }
         )
         # Return the direct response text when no tool calls are needed
-        return completion
+        if tts_thread.is_alive():
+            tts_thread.join()
+            return completion
 
 # Function to convert text to speech using Google Cloud TTS
 def text_to_speech(text):
@@ -432,7 +460,7 @@ def main():
         frames_per_buffer=porcupine.frame_length
     )
     
-    get_chatgpt_response("Can you play your fav song and then set a reminder for me to do my homework at 5pm?")
+    # get_chatgpt_response("Can you play your fav song and then set a reminder for me to do my homework at 5pm?")
 
     vad = webrtcvad.Vad(2)
 
