@@ -251,7 +251,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
         delta = chunk.choices[0].delta
         if delta.content or delta.content=='':
             completion += chunk.choices[0].delta.content
-            print(completion)
+            # print(completion)
             
             if not first_sentence_processed and any(punctuation in completion for punctuation in ["!", ".", "?"]):
                 string1, rest = split_first_sentence(completion)
@@ -271,13 +271,13 @@ def get_chatgpt_response(text, function=False, function_name=None):
 
                 if tcchunk.id:
                     tc["id"] += tcchunk.id
-                    print(tc["id"])
+                    # print(tc["id"])
                 if tcchunk.function.name:
                     tc["function"]["name"] += tcchunk.function.name
-                    print(tc["function"]["name"])
+                    # print(tc["function"]["name"])
                 if tcchunk.function.arguments:
                     tc["function"]["arguments"] += tcchunk.function.arguments
-                    print(tc["function"]["arguments"])
+                    # print(tc["function"]["arguments"])
     if tool_calls:
         tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Connecting to the internet",))
         tts_thread_function.start()
