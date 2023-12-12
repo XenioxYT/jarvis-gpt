@@ -43,6 +43,7 @@ def user_query(input):
             "role": "user",
             "content":
                 "You are an AI designed to classify the intent of a voice command for a virtual assistant. "
+                "DO NOT give any other output other than JSON."
                 "Your task is to analyze the user command and determine the specific action the user wants to perform. "
                 "These actions include playing music, pausing music, skipping songs, turning devices on or off. "
                 "Provide your classification in a JSON format like this: "
@@ -73,3 +74,5 @@ def user_query(input):
         return "turn_off_device"
     else:
         return None
+    
+print(user_query("resume music"))
