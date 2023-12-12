@@ -8,6 +8,7 @@ import wave
 import requests
 import torch
 import webrtcvad
+import queue as thread_queue
 import pvporcupine
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -113,7 +114,7 @@ SUCCESS_SOUND = "./success.wav"
 
 client = texttospeech.TextToSpeechClient()
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model = whisper.load_model("large").to(device)
+model = whisper.load_model("base").to(device)
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
@@ -220,15 +221,37 @@ def get_chatgpt_response(text, function=False, function_name=None):
         model="gpt-4-1106-preview",
         messages=messages,
         tools=tools,
+        stream=True,
     )
-
-    # Extract the response message
-    response_message = response.choices[0].message
-    # Process any tool calls
-    tool_calls = getattr(response_message, 'tool_calls', [])
     
+    completion = ""
+    tool_calls = []
+
+    for chunk in response:
+        delta = chunk.choices[0].delta
+        if delta.content or delta.content=='':
+            completion += chunk.choices[0].delta.content
+            print(completion)
+        
+        if chunk.choices[0].delta.tool_calls:
+            tcchunklist = delta.tool_calls
+            for tcchunk in tcchunklist:
+                if len(tool_calls) <= tcchunk.index:
+                    tool_calls.append({"id": "", "type": "function", "function": { "name": "", "arguments": "" } })
+                tc = tool_calls[tcchunk.index]
+
+                if tcchunk.id:
+                    tc["id"] += tcchunk.id
+                    print(tc["id"])
+                if tcchunk.function.name:
+                    tc["function"]["name"] += tcchunk.function.name
+                    print(tc["function"]["name"])
+                if tcchunk.function.arguments:
+                    tc["function"]["arguments"] += tcchunk.function.arguments
+                    print(tc["function"]["arguments"])
     if tool_calls:
         text_to_speech("I'm accessing external tools to complete your request, please hold on for a moment.")
+
         # Dictionary mapping function names to actual function implementations
         available_functions = {
             "get_weather_data": get_weather_data,
@@ -238,25 +261,20 @@ def get_chatgpt_response(text, function=False, function_name=None):
             "edit_reminder": edit_reminder,
             "list_unnotified_reminders": list_unnotified_reminders,
             "add_event_to_calendar": add_event_to_calendar,
-            "toggle_device" : toggle_entity,
+            "toggle_device": toggle_entity,
             "play_song_on_spotify": search_spotify_song,
         }
-        for tool_Call in tool_calls:
-            messages.append(
-                {
-                    "role": "assistant",
-                    "content": "You called a function with the following parameters" + tool_Call.function.name + " " + json.dumps(tool_Call.function.arguments),
-                }
-            )
 
         for tool_call in tool_calls:
+            function_name = tool_call['function']['name']
+            function_args = json.loads(tool_call['function']['arguments'])
+
             print(f"Tool call: {tool_call}")
-            function_name = tool_call.function.name
-            function_args = json.loads(tool_call.function.arguments)
             print(f"Function name: {function_name}", f"Function args: {function_args}")
+
             if function_name == "play_song_on_spotify":
                 text_to_speech("Connecting to your speakers, hold on tight")
-            
+
             if function_name in available_functions:
                 function_response = available_functions[function_name](**function_args)
                 print(function_response)
@@ -273,33 +291,39 @@ def get_chatgpt_response(text, function=False, function_name=None):
         try:
             second_response = oai_client.chat.completions.create(
                 model="gpt-4-1106-preview",
-                messages=messages
+                messages=messages,
+                stream=True,
             )
         except Exception as e:
             print(f"An error occurred: {e}")
             second_response = oai_client.chat.completions.create(
                 model="gpt-4-1106-preview",
-                messages=messages
+                messages=messages,
+                stream=True,
             )
         if second_response:
-            print(second_response.choices[0].message)
+            for chunk in second_response:
+                delta = chunk.choices[0].delta
+                if delta.content or delta.content=='':
+                    completion += chunk.choices[0].delta.content
+                    print(completion)
             messages.append(
                 {
                     "role": "assistant",
-                    "content": second_response.choices[0].message.content,
+                    "content": completion,
                 }
             )
             # Assume that we return the final response text after the tool call handling
-        return second_response.choices[0].message.content
+            return completion
     else:
         messages.append(
             {
                 "role": "assistant",
-                "content": response_message.content,
+                "content": completion,
             }
         )
         # Return the direct response text when no tool calls are needed
-        return response_message.content
+        return completion
 
 # Function to convert text to speech using Google Cloud TTS
 def text_to_speech(text):
@@ -407,6 +431,8 @@ def main():
         input=True,
         frames_per_buffer=porcupine.frame_length
     )
+    
+    get_chatgpt_response("Can you play your fav song and then set a reminder for me to do my homework at 5pm?")
 
     vad = webrtcvad.Vad(2)
 
