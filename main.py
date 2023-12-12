@@ -289,7 +289,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
             "edit_reminder": edit_reminder,
             "list_unnotified_reminders": list_unnotified_reminders,
             "add_event_to_calendar": add_event_to_calendar,
-            "toggle_device": toggle_entity,
+            "control_switch": toggle_entity,
             "play_song_on_spotify": search_spotify_song,
         }
 
