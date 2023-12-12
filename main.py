@@ -116,7 +116,7 @@ SUCCESS_SOUND = "./success.wav"
 
 client = texttospeech.TextToSpeechClient()
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model = whisper.load_model("base").to(device)
+model = whisper.load_model("large").to(device)
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
