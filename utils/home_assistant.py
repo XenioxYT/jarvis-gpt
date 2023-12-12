@@ -48,5 +48,5 @@ def toggle_entity(entity_id, switch):
 
 
 # Example usage
-entity_id = "switch.desk_lamp_socket_1" 
-toggle_entity(entity_id, True)
+# entity_id = "switch.desk_lamp_socket_1" 
+# toggle_entity(entity_id, True)

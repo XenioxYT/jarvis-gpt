@@ -278,7 +278,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
                     tc["function"]["arguments"] += tcchunk.function.arguments
                     print(tc["function"]["arguments"])
     if tool_calls:
-        text_to_speech("I'm accessing external tools to complete your request, please hold on for a moment.")
+        text_to_speech("Connecting to the internet")
 
         # Dictionary mapping function names to actual function implementations
         available_functions = {
