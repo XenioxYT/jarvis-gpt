@@ -302,7 +302,26 @@ def get_chatgpt_response(text, function=False, function_name=None):
             print(f"Function name: {function_name}", f"Function args: {function_args}")
 
             if function_name == "play_song_on_spotify":
-                text_to_speech("Connecting to your speakers, hold on tight")
+                tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Connecting to your speakers...",))
+                tts_thread_function.start()
+            elif function_name == "set_reminder":
+                # reminder function takes reminder_text and reminder_time as arguments
+                #select reminder_text
+                reminder_text_selected = function_args['reminder_text']
+                reminder_time_selected = function_args['reminder_time']
+                tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Setting a reminder for " + reminder_text_selected + " at " + reminder_time_selected,))
+                tts_thread_function.start()
+                
+            elif function_name == "add_event_to_calendar":
+                # reminder function takes reminder_text and reminder_time as arguments
+                #select reminder_text
+                event_name = function_args['title']
+                tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Adding " + event_name + " to your calendar...",))
+                tts_thread_function.start()
+            
+            elif function_name == "get_weather_data":
+                tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Getting live weather data...",))
+                tts_thread_function.start()
 
             if function_name in available_functions:
                 function_response = available_functions[function_name](**function_args)
@@ -336,6 +355,8 @@ def get_chatgpt_response(text, function=False, function_name=None):
                 if delta.content or delta.content=='':
                     completion += chunk.choices[0].delta.content
                     print(completion)
+                    if tts_thread_function.is_alive():
+                        tts_thread_function.join()
 
                     if not first_sentence_processed_second_response and any(punctuation in completion for punctuation in ["!", ".", "?"]):
                         string1, rest = split_first_sentence(completion)
