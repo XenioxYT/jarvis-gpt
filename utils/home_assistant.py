@@ -5,6 +5,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def toggle_entity(entity_id, switch):
+    if switch == "true" or switch == "True" or switch == True:
+        switch = True
+    else:
+        switch = False
     access_token = os.getenv('HASS_TOKEN')
     home_assistant_url = os.getenv('HASS_URL')
     # Determine the type of the entity (e.g., 'switch')
@@ -44,5 +48,5 @@ def toggle_entity(entity_id, switch):
 
 
 # Example usage
-# entity_id = "switch.desk_lamp_socket_1" 
-# toggle_entity(entity_id)
+entity_id = "switch.desk_lamp_socket_1" 
+toggle_entity(entity_id, True)
