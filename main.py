@@ -294,6 +294,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
         delta = chunk.choices[0].delta
         if delta.content or delta.content == '':
             completion += chunk.choices[0].delta.content
+            print(completion)
             full_completion += chunk.choices[0].delta.content
             
             if waiting_for_number and completion[0].isdigit():
@@ -423,11 +424,16 @@ def get_chatgpt_response(text, function=False, function_name=None):
             )
         if second_response:
             store_conversation(1, messages)
+            completion = ""
             for chunk in response:
                 delta = chunk.choices[0].delta
                 if delta.content or delta.content == '':
                     completion += chunk.choices[0].delta.content
+                    print(completion)
                     full_completion_2 += chunk.choices[0].delta.content
+                    
+                    if tts_thread_function.is_alive():
+                        tts_thread_function.join()
 
                     if waiting_for_number_second_response and completion[0].isdigit():
                         # Append the number to the previously processed sentence
