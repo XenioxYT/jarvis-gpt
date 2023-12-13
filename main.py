@@ -29,6 +29,22 @@ from calendar_utils import check_calendar, add_event_to_calendar
 from utils.home_assistant import toggle_entity
 from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device, play_spotify, pause_spotify
 from classiciation import user_query, is_english_text
+from utils.store_conversation import store_conversation
+
+import torch
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+
+model_id = "distil-whisper/distil-large-v2"
+
+model = AutoModelForSpeechSeq2Seq.from_pretrained(
+    model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
+)
+model.to(device)
+
+processor = AutoProcessor.from_pretrained(model_id)
 
 load_dotenv()
 
@@ -101,6 +117,8 @@ messages = [
         "The current date and time is: " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     },
 ]
+
+store_conversation(1, 4000, messages)
 
 # Load environment variables
 api_key = os.getenv("OPENAI_API_KEY")
@@ -202,8 +220,17 @@ def save_audio(frames, filename='temp.wav'):
 # Function to transcribe speech to text using Whisper
 def transcribe(filename='temp.wav'):
     # model = whisper.load_model("base")  # this is done in the head of the file
-    result = model.transcribe(filename, language="en")
-    return result["text"]
+    pipe = pipeline(
+        "automatic-speech-recognition",
+        model=model,
+        tokenizer=processor.tokenizer,
+        feature_extractor=processor.feature_extractor,
+        max_new_tokens=128,
+        torch_dtype=torch_dtype,
+        device=device,
+    )
+    result = pipe("temp.wav")
+    print(result["text"])
 
 def split_first_sentence(text):
     # This regex looks for a period, exclamation mark, or question mark followed by a space and an uppercase letter.
@@ -233,6 +260,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
     timestamp = datetime.datetime.now().strftime("%H:%M on %a %d %B %Y")
     
     messages.append({"role": "user", "content": f"At {timestamp} user said: {text}"})
+    store_conversation(1, 4000, messages)
 
     # Send the initial message and the available tool to the model
     response = oai_client.chat.completions.create(
