@@ -282,6 +282,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
     )
     
     completion = ""
+    string1 = ""
     first_sentence_processed = False
     first_sentence_processed_second_response = False
     waiting_for_number = False
@@ -291,18 +292,22 @@ def get_chatgpt_response(text, function=False, function_name=None):
         delta = chunk.choices[0].delta
         if delta.content or delta.content == '':
             completion += chunk.choices[0].delta.content
-            
+
             if waiting_for_number and completion[0].isdigit():
-                # Append the number to the previously processed sentence
+                # Append the number to the previously processed sentence and continue processing
                 string1 += completion
                 waiting_for_number = False
-                # Continue with text-to-speech and rest of the processing
-                # ...
-    
+
+                # Now check if the sentence continues or a new one starts
+                continuation, new_rest = split_first_sentence(completion[len(completion):])
+                if continuation:
+                    string1 += continuation
+                    completion = new_rest
+                    first_sentence_processed = True
+
             elif not first_sentence_processed and any(punctuation in completion for punctuation in ["!", ".", "?"]):
                 string1, rest = split_first_sentence(completion)
-    
-                # Check if string1 ends with a pattern like "number."
+
                 if re.search(r'\d\.$', string1):
                     waiting_for_number = True
                 else:
