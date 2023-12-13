@@ -306,8 +306,6 @@ def get_chatgpt_response(text, function=False, function_name=None):
                     tc["function"]["arguments"] += tcchunk.function.arguments
                     # print(tc["function"]["arguments"])
     if tool_calls:
-        tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Connecting to the internet",))
-        tts_thread_function.start()
 
         # Dictionary mapping function names to actual function implementations
         available_functions = {
@@ -357,6 +355,12 @@ def get_chatgpt_response(text, function=False, function_name=None):
                 if tts_thread_function.is_alive():
                     tts_thread_function.join()
                 tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Getting live weather data...",))
+                tts_thread_function.start()
+            
+            else:
+                if tts_thread_function.is_alive():
+                    tts_thread_function.join()
+                tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Connecting to the internet",))
                 tts_thread_function.start()
 
             if function_name in available_functions:
