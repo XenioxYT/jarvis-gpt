@@ -141,7 +141,7 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 REMINDERS_DB_FILE = 'reminders.json'
     
-def check_reminders(cursor=None):
+def check_reminders(cursor=None, db_conn=None):
     current_time = datetime.datetime.now().replace(second=0, microsecond=0)
     reminders = load_reminders()
     print(reminders)
@@ -150,7 +150,7 @@ def check_reminders(cursor=None):
     
     for reminder in due_reminders:
         message = f"A reminder has been triggered for {reminder['time']} with text: {reminder['text']}. Please deliver this reminder to the user."
-        response = get_chatgpt_response(message, cursor=cursor, function=True, function_name="speak_reminder")
+        response = get_chatgpt_response(message=message, cursor=cursor, db_conn=db_conn, function=True, function_name="speak_reminder")
         text_to_speech(response)
         
         reminder['notified'] = True  # Mark as notified
@@ -251,7 +251,7 @@ def text_to_speech_thread(text):
     text_to_speech(text)
 
 # Function to get response from ChatGPT, making any necessary tool calls
-def get_chatgpt_response(text, function=False, function_name=None, cursor=None):
+def get_chatgpt_response(text, function=False, function_name=None, cursor=None, db_conn=None):
     if function:
         messages.append(
             {
@@ -264,7 +264,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None):
     
     messages.append({"role": "user", "content": f"At {timestamp} user said: {text}"})
     if cursor:
-        store_conversation(1, messages, cursor)
+        store_conversation(1, messages, cursor, db_conn)
     else:
         store_conversation(1, messages)
 
@@ -361,7 +361,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None):
             #     }
             # )
             if cursor:
-                store_conversation(1, messages, cursor)
+                store_conversation(1, messages, cursor, db_conn)
             else:
                 store_conversation(1, messages)
 
@@ -406,7 +406,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None):
                     }
                 )
                 if cursor:
-                    store_conversation(1, messages, cursor)
+                    store_conversation(1, messages, cursor, db_conn)
                 else:
                     store_conversation(1, messages)
                     continue
@@ -464,7 +464,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None):
                 }
             )
             if cursor:
-                store_conversation(1, messages, cursor)
+                store_conversation(1, messages, cursor, db_conn)
             else:
                 store_conversation(1, messages)
             # Assume that we return the final response text after the tool call handling
@@ -482,7 +482,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None):
             }
         )
         if cursor:
-            store_conversation(1, messages, cursor)
+            store_conversation(1, messages, cursor, db_conn)
         else:
             store_conversation(1, messages)
         # Return the direct response text when no tool calls are needed
