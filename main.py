@@ -283,6 +283,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
     
     completion = ""
     full_completion = ""
+    full_completion_2 = ""
     first_sentence_processed = False
     first_sentence_processed_second_response = False
     waiting_for_number = False
