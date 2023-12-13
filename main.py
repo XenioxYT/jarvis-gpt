@@ -404,7 +404,6 @@ def get_chatgpt_response(text, function=False, function_name=None):
                     "content": completion,
                 }
             )
-            print(completion)
             store_conversation(1, messages)
             # Assume that we return the final response text after the tool call handling
             if tts_thread.is_alive():
