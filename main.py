@@ -143,6 +143,7 @@ REMINDERS_DB_FILE = 'reminders.json'
 def check_reminders():
     current_time = datetime.datetime.now().replace(second=0, microsecond=0)
     reminders = load_reminders()
+    print(reminders)
     
     due_reminders = [r for r in reminders if not r['notified'] and datetime.datetime.fromisoformat(r['time']) == current_time]
     
