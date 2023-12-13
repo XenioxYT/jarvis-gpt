@@ -425,7 +425,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
         if second_response:
             store_conversation(1, messages)
             completion = ""
-            for chunk in response:
+            for chunk in second_response:
                 delta = chunk.choices[0].delta
                 if delta.content or delta.content == '':
                     completion += chunk.choices[0].delta.content
