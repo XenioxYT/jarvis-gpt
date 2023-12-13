@@ -54,7 +54,7 @@ def store_conversation(conversation_id, conversation):
 
     # Now, store the conversation in the database
     c = db_conn.cursor()
-    values = (conversation_id, json.dumps(conversation), is_busy)
-    c.execute("REPLACE INTO conversations VALUES (?, ?, ?)", values)
+    values = (conversation_id, json.dumps(conversation))
+    c.execute("REPLACE INTO conversations VALUES (?, ?)", values)
     db_conn.commit()
     
