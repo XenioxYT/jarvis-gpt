@@ -97,7 +97,7 @@ def manage_google_calendar(operation, event_data=None, event_id=None, date=None)
         else:
             print("No date provided to list events")
             
-def add_event_to_calendar(title, start, end, location=None, description=None):
+def add_event_to_calendar(title, start, end, location="None", description="None"):
     """
     Adds an event to the Google Calendar with the specified details.
 
@@ -126,9 +126,9 @@ def add_event_to_calendar(title, start, end, location=None, description=None):
     }
 
     # Add optional parameters if they are provided
-    if location:
+    if location!="None":
         event['location'] = location
-    if description:
+    if description!="None":
         event['description'] = description
 
     # Call the Google Calendar API to create the event
