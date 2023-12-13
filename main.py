@@ -118,7 +118,7 @@ messages = [
     },
 ]
 
-store_conversation(1, 4000, messages)
+store_conversation(1, messages)
 
 # Load environment variables
 api_key = os.getenv("OPENAI_API_KEY")
