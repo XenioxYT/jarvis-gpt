@@ -42,7 +42,7 @@ def trim_conversation_to_fit_limit(conversation, token_limit, conversation_id):
         
         store_conversation(conversation_id, conversation)
 
-def store_conversation(conversation_id, conversation, cursor=None):
+def store_conversation(conversation_id, conversation, cursor=None, db_conn=None):
     
     token_limit = 7000
     
@@ -54,8 +54,15 @@ def store_conversation(conversation_id, conversation, cursor=None):
 
     # Now, store the conversation in the database
 
-    c = db_conn.cursor()
+    if cursor is None:
+        db_conn= sqlite3.connect('conversations.db')
+        cursor = db_conn.cursor()
+    else:
+        cursor = cursor
+        db_conn = db_conn
+
+    cursor = db_conn.cursor()
     values = (conversation_id, json.dumps(conversation))
-    c.execute("REPLACE INTO conversations VALUES (?, ?)", values)
+    cursor.execute("REPLACE INTO conversations VALUES (?, ?)", values)
     db_conn.commit()
     
