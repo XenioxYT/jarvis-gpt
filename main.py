@@ -231,12 +231,14 @@ def transcribe(filename='temp.wav'):
     result = pipe(filename)
     return result["text"]
 
+import re
+
 def split_first_sentence(text):
-    # This regex looks for a period, exclamation mark, or question mark that's not part of a decimal number
-    # followed by a space and an uppercase letter.
-    match = re.search(r'(?<!\d)([.!?])(?!\d)\s+(?=[A-Z])', text)
+    # This regex looks for a period, exclamation mark, or question mark followed by a space and an uppercase letter,
+    # and avoids splitting on decimal points.
+    match = re.search(r'(?<!\d)[.!?](?!\d\s*[A-Z])\s+(?=[A-Z])', text)
     if match:
-        index = match.start(1) + 1  # Add 1 to keep the punctuation with the first sentence
+        index = match.start() + 1  # Add 1 to keep the punctuation with the first sentence
         first_sentence = text[:index].strip()
         rest_of_text = text[index:].strip()
         return first_sentence, rest_of_text
