@@ -161,7 +161,7 @@ def reminder_daemon():
     while True:    
         db_conn = sqlite3.connect('conversations.db')
         c = db_conn.cursor()
-        check_reminders(cursor=c)
+        check_reminders(cursor=c, db_conn=db_conn)
         db_conn.close()
         time.sleep(30)  # Wait for one minute before checking again
 
