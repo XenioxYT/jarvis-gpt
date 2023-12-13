@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import sqlite3
 import struct
 import threading
 import time
@@ -140,7 +141,7 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 REMINDERS_DB_FILE = 'reminders.json'
     
-def check_reminders():
+def check_reminders(cursor=None):
     current_time = datetime.datetime.now().replace(second=0, microsecond=0)
     reminders = load_reminders()
     print(reminders)
@@ -149,7 +150,7 @@ def check_reminders():
     
     for reminder in due_reminders:
         message = f"A reminder has been triggered for {reminder['time']} with text: {reminder['text']}. Please deliver this reminder to the user."
-        response = get_chatgpt_response(message, function=True, function_name="speak_reminder")
+        response = get_chatgpt_response(message, cursor=cursor, function=True, function_name="speak_reminder")
         text_to_speech(response)
         
         reminder['notified'] = True  # Mark as notified
@@ -157,8 +158,11 @@ def check_reminders():
     save_reminders(reminders)  # Update the reminders in the database
     
 def reminder_daemon():
-    while True:
-        check_reminders()
+    while True:    
+        db_conn = sqlite3.connect('conversations.db')
+        c = db_conn.cursor()
+        check_reminders(cursor=c)
+        db_conn.close()
         time.sleep(30)  # Wait for one minute before checking again
 
 # Initialize PyAudio
@@ -247,7 +251,7 @@ def text_to_speech_thread(text):
     text_to_speech(text)
 
 # Function to get response from ChatGPT, making any necessary tool calls
-def get_chatgpt_response(text, function=False, function_name=None):
+def get_chatgpt_response(text, function=False, function_name=None, cursor=None):
     if function:
         messages.append(
             {
@@ -259,7 +263,10 @@ def get_chatgpt_response(text, function=False, function_name=None):
     timestamp = datetime.datetime.now().strftime("%H:%M on %a %d %B %Y")
     
     messages.append({"role": "user", "content": f"At {timestamp} user said: {text}"})
-    store_conversation(1, messages)
+    if cursor:
+        store_conversation(1, messages, cursor)
+    else:
+        store_conversation(1, messages)
 
     # Send the initial message and the available tool to the model
     response = oai_client.chat.completions.create(
@@ -353,7 +360,10 @@ def get_chatgpt_response(text, function=False, function_name=None):
             #         "content": "You called a function with the following parameters" + function_name + " " + str(function_args),
             #     }
             # )
-            store_conversation(1, messages)
+            if cursor:
+                store_conversation(1, messages, cursor)
+            else:
+                store_conversation(1, messages)
 
             print(f"Tool call: {tool_call}")
             print(f"Function name: {function_name}", f"Function args: {function_args}")
@@ -395,8 +405,11 @@ def get_chatgpt_response(text, function=False, function_name=None):
                         "content": function_response,
                     }
                 )
-                store_conversation(1, messages)
-                continue
+                if cursor:
+                    store_conversation(1, messages, cursor)
+                else:
+                    store_conversation(1, messages)
+                    continue
         try:
             second_response = oai_client.chat.completions.create(
                 model="gpt-4-1106-preview",
@@ -450,7 +463,10 @@ def get_chatgpt_response(text, function=False, function_name=None):
                     "content": full_completion_2,
                 }
             )
-            store_conversation(1, messages)
+            if cursor:
+                store_conversation(1, messages, cursor)
+            else:
+                store_conversation(1, messages)
             # Assume that we return the final response text after the tool call handling
             try:
                 if tts_thread.is_alive():
@@ -465,7 +481,10 @@ def get_chatgpt_response(text, function=False, function_name=None):
                 "content": full_completion,
             }
         )
-        store_conversation(1, messages)
+        if cursor:
+            store_conversation(1, messages, cursor)
+        else:
+            store_conversation(1, messages)
         # Return the direct response text when no tool calls are needed
         try:
             if tts_thread.is_alive():
