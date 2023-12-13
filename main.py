@@ -260,7 +260,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
     timestamp = datetime.datetime.now().strftime("%H:%M on %a %d %B %Y")
     
     messages.append({"role": "user", "content": f"At {timestamp} user said: {text}"})
-    store_conversation(1, 4000, messages)
+    store_conversation(1, messages)
 
     # Send the initial message and the available tool to the model
     response = oai_client.chat.completions.create(
