@@ -320,6 +320,11 @@ def get_chatgpt_response(text, function=False, function_name=None):
             "control_switch": toggle_entity,
             "play_song_on_spotify": search_spotify_song,
         }
+        
+        if len(tool_calls) > 1:
+            multiple_tool_calls = True
+        else:
+            multiple_tool_calls = False
 
         for tool_call in tool_calls:
             function_name = tool_call['function']['name']
@@ -335,8 +340,12 @@ def get_chatgpt_response(text, function=False, function_name=None):
 
             print(f"Tool call: {tool_call}")
             print(f"Function name: {function_name}", f"Function args: {function_args}")
+            
+            if multiple_tool_calls:
+                tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Accessing multiple tools...",))
+                tts_thread_function.start()
 
-            if function_name == "play_song_on_spotify":
+            elif function_name == "play_song_on_spotify":
                 tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Connecting to your speakers...",))
                 tts_thread_function.start()
             elif function_name == "set_reminder":
@@ -389,6 +398,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
                 delta = chunk.choices[0].delta
                 if delta.content or delta.content=='':
                     completion += chunk.choices[0].delta.content
+                    print(completion)
 
                     if not first_sentence_processed_second_response and any(punctuation in completion for punctuation in ["!", ".", "?"]):
                         string1, rest = split_first_sentence(completion)
