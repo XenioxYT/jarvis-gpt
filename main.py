@@ -225,10 +225,11 @@ def transcribe(filename='temp.wav'):
         tokenizer=processor.tokenizer,
         feature_extractor=processor.feature_extractor,
         max_new_tokens=128,
+        return_timestamps=False,
         torch_dtype=torch_dtype,
         device=device,
     )
-    result = pipe(filename)
+    result = pipe(filename, generate_kwargs={"language": "english"})
     return result["text"]
 
 import re
