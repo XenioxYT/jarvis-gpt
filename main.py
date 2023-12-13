@@ -359,12 +359,12 @@ def get_chatgpt_response(text, function=False, function_name=None):
             function_name = tool_call['function']['name']
             function_args = json.loads(tool_call['function']['arguments'])
             
-            messages.append(
-                {
-                    "role": "assistant",
-                    "content": "You called a function with the following parameters" + function_name + " " + str(function_args),
-                }
-            )
+            # messages.append(
+            #     {
+            #         "role": "assistant",
+            #         "content": "You called a function with the following parameters" + function_name + " " + str(function_args),
+            #     }
+            # )
             store_conversation(1, messages)
 
             print(f"Tool call: {tool_call}")
