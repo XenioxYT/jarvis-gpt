@@ -288,12 +288,20 @@ def get_chatgpt_response(text, function=False, function_name=None):
 
     for chunk in response:
         delta = chunk.choices[0].delta
-        if delta.content or delta.content=='':
+        if delta.content or delta.content == '':
             completion += chunk.choices[0].delta.content
-            # print(completion)
             
             if not first_sentence_processed and any(punctuation in completion for punctuation in ["!", ".", "?"]):
                 string1, rest = split_first_sentence(completion)
+    
+                # Check if string1 ends with a pattern like "number."
+                if re.search(r'\d\.$', string1):
+                    # Check the next chunk in response
+                    next_chunk = response[response.index(chunk) + 1].choices[0].delta.content if response.index(chunk) + 1 < len(response) else ""
+                    if next_chunk and next_chunk[0].isdigit():
+                        string1 += next_chunk
+                        rest = rest[len(next_chunk):]  # Adjust the rest accordingly
+    
                 if string1:
                     # Start the text-to-speech function in a separate thread
                     tts_thread = threading.Thread(target=text_to_speech_thread, args=(string1,))
