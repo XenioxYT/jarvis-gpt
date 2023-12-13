@@ -234,14 +234,22 @@ def transcribe(filename='temp.wav'):
 import re
 
 def split_first_sentence(text):
-    # This regex looks for a period, exclamation mark, or question mark followed by a space and an uppercase letter,
-    # and avoids splitting on decimal points.
-    match = re.search(r'(?<!\d)[.!?](?!\d\s*[A-Z])\s+(?=[A-Z])', text)
+    # Look for a period, exclamation mark, or question mark that might indicate the end of a sentence
+    match = re.search(r'[.!?]', text)
     if match:
-        index = match.start() + 1  # Add 1 to keep the punctuation with the first sentence
-        first_sentence = text[:index].strip()
-        rest_of_text = text[index:].strip()
-        return first_sentence, rest_of_text
+        # Check if the match is likely the end of a sentence
+        index = match.start()
+        possible_end = text[:index + 1]
+        remainder = text[index + 1:]
+
+        # Look ahead to see if the next character is a digit (part of a decimal) or an uppercase letter (start of a new sentence)
+        next_char_match = re.search(r'\s*([A-Z]|\d)', remainder)
+        if next_char_match and next_char_match.group(1).isupper():
+            # It's an uppercase letter, so likely a new sentence
+            return possible_end.strip(), remainder.strip()
+        else:
+            # It's a digit or there's no immediate uppercase letter, so likely not the end of a sentence
+            return text, ''
     else:
         return text, ''
 
