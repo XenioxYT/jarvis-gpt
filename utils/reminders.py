@@ -92,7 +92,7 @@ def edit_reminder(search_text, new_text=None, new_time=None):
                 print(f"Confirmed updated reminder from file: {rem}")
                 break
 
-        return "Your reminder has been successfully updated."
+        return "Your reminder has been successfully updated to" + new_time + "with text: " + new_text
     else:
         # If multiple matches are found, explain to the user how to specify their choice
         message = "No exact match found for editing a reminder. "\
