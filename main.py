@@ -150,7 +150,7 @@ def check_reminders(cursor=None, db_conn=None):
     
     for reminder in due_reminders:
         message = f"A reminder has been triggered for {reminder['time']} with text: {reminder['text']}. Please deliver this reminder to the user."
-        response = get_chatgpt_response(message=message, cursor=cursor, db_conn=db_conn, function=True, function_name="speak_reminder")
+        response = get_chatgpt_response(text=message, cursor=cursor, db_conn=db_conn, function=True, function_name="speak_reminder")
         text_to_speech(response)
         
         reminder['notified'] = True  # Mark as notified
