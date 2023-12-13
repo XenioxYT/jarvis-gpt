@@ -53,10 +53,8 @@ def store_conversation(conversation_id, conversation):
     trim_conversation_to_fit_limit(conversation, token_limit, conversation_id)
 
     # Now, store the conversation in the database
-    try:
-        c = db_conn.cursor()
-    except sqlite3.ProgrammingError:
-        pass
+
+    c = db_conn.cursor()
     values = (conversation_id, json.dumps(conversation))
     c.execute("REPLACE INTO conversations VALUES (?, ?)", values)
     db_conn.commit()
