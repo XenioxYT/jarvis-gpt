@@ -157,21 +157,8 @@ def check_reminders():
     
 def reminder_daemon():
     while True:
-        # Check reminders at the start of the loop
         check_reminders()
-
-        # Calculate the current time
-        current_time = time.time()
-
-        # Calculate how many seconds have passed in the current minute
-        seconds_passed = current_time % 60
-
-        # Calculate how many seconds to sleep until the start of the next minute
-        # If it's exactly on the minute, sleep for a full 60 seconds
-        sleep_time = 60 - seconds_passed if seconds_passed != 0 else 60
-
-        # Sleep for the calculated duration
-        time.sleep(sleep_time)
+        time.sleep(30)  # Wait for one minute before checking again
 
 # Initialize PyAudio
 pa = pyaudio.PyAudio()
