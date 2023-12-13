@@ -325,6 +325,14 @@ def get_chatgpt_response(text, function=False, function_name=None):
         for tool_call in tool_calls:
             function_name = tool_call['function']['name']
             function_args = json.loads(tool_call['function']['arguments'])
+            
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": "You called a function with the following parameters" + function_name + " " + function_args,
+                }
+            )
+            store_conversation(1, messages)
 
             print(f"Tool call: {tool_call}")
             print(f"Function name: {function_name}", f"Function args: {function_args}")
@@ -363,6 +371,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
                         "content": function_response,
                     }
                 )
+                store_conversation(1, messages)
                 continue
         try:
             second_response = oai_client.chat.completions.create(
@@ -378,6 +387,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
                 stream=True,
             )
         if second_response:
+            store_conversation(1, messages)
             for chunk in second_response:
                 delta = chunk.choices[0].delta
                 if delta.content or delta.content=='':
@@ -400,6 +410,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
                     "content": completion,
                 }
             )
+            store_conversation(1, messages)
             # Assume that we return the final response text after the tool call handling
             if tts_thread.is_alive():
                 tts_thread.join()
@@ -411,6 +422,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
                 "content": completion,
             }
         )
+        store_conversation(1, messages)
         # Return the direct response text when no tool calls are needed
         if tts_thread.is_alive():
             tts_thread.join()
