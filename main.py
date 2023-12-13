@@ -302,7 +302,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
             elif not first_sentence_processed and any(punctuation in completion for punctuation in ["!", ".", "?"]):
                 if not re.search(r'\d+\.\d+', completion):
                     string1, rest = split_first_sentence(completion)
-        
+
                     # Check if string1 ends with a pattern like "number."
                     if re.search(r'\d\.$', string1):
                         waiting_for_number = True
@@ -453,8 +453,11 @@ def get_chatgpt_response(text, function=False, function_name=None):
         )
         store_conversation(1, messages)
         # Return the direct response text when no tool calls are needed
-        if tts_thread.is_alive():
-            tts_thread.join()
+        try:
+            if tts_thread.is_alive():
+                tts_thread.join()
+        except:
+            pass
         return completion
 
 # Function to convert text to speech using Google Cloud TTS
