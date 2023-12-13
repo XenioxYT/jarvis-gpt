@@ -60,7 +60,7 @@ def get_closest_reminder_matches(search_text, threshold=0.5):
 
     return (matching_reminders, False)
     
-def edit_reminder(search_text, new_text=None, new_time=None):
+def edit_reminder(search_text, new_text="None", new_time="None"):
     reminders = load_reminders()
     matched_reminders, exact_match = get_closest_reminder_matches(search_text)
     print(f"Matching reminders: {matched_reminders}, Exact match: {exact_match}")
@@ -76,9 +76,9 @@ def edit_reminder(search_text, new_text=None, new_time=None):
         for index, rem in enumerate(reminders):
             if rem['id'] == reminder_to_edit['id']:
                 print(f"Found reminder at index {index} to update.")
-                if new_time:
+                if new_time != "None":
                     rem['time'] = new_time
-                if new_text:
+                if new_text != "None":
                     rem['text'] = new_text
                 rem['notified'] = False  # Reset notification status
                 
