@@ -232,8 +232,9 @@ def transcribe(filename='temp.wav'):
     return result["text"]
 
 def split_first_sentence(text):
-    # This regex looks for a period, exclamation mark, or question mark followed by a space and an uppercase letter.
-    match = re.search(r'(?<=[.!?])\s+(?=[A-Z])', text)
+    # This regex looks for a period, exclamation mark, or question mark followed by a space and an uppercase letter,
+    # but ignores periods that are between numbers (like in "2.7").
+    match = re.search(r'(?<!\d)[.!?](?!\d)\s+(?=[A-Z])', text)
     if match:
         index = match.start()  # No need to add 1 since we want to keep the punctuation with the first sentence
         first_sentence = text[:index].strip()
