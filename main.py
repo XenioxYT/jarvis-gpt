@@ -282,7 +282,6 @@ def get_chatgpt_response(text, function=False, function_name=None):
     )
     
     completion = ""
-    string1 = ""
     first_sentence_processed = False
     first_sentence_processed_second_response = False
     waiting_for_number = False
@@ -292,31 +291,28 @@ def get_chatgpt_response(text, function=False, function_name=None):
         delta = chunk.choices[0].delta
         if delta.content or delta.content == '':
             completion += chunk.choices[0].delta.content
-
+            
             if waiting_for_number and completion[0].isdigit():
-                # Append the number to the previously processed sentence and continue processing
+                # Append the number to the previously processed sentence
                 string1 += completion
                 waiting_for_number = False
-
-                # Now check if the sentence continues or a new one starts
-                continuation, new_rest = split_first_sentence(completion[len(completion):])
-                if continuation:
-                    string1 += continuation
-                    completion = new_rest
-                    first_sentence_processed = True
-
+                # Continue with text-to-speech and rest of the processing
+                # ...
+    
             elif not first_sentence_processed and any(punctuation in completion for punctuation in ["!", ".", "?"]):
-                string1, rest = split_first_sentence(completion)
-
-                if re.search(r'\d\.$', string1):
-                    waiting_for_number = True
-                else:
-                    if string1:
-                        # Start the text-to-speech function in a separate thread
-                        tts_thread = threading.Thread(target=text_to_speech_thread, args=(string1,))
-                        tts_thread.start()
-                        completion = rest  # Reset completion to contain only the remaining text
-                        first_sentence_processed = True
+                if not re.search(r'\d+\.\d+', completion):
+                    string1, rest = split_first_sentence(completion)
+        
+                    # Check if string1 ends with a pattern like "number."
+                    if re.search(r'\d\.$', string1):
+                        waiting_for_number = True
+                    else:
+                        if string1:
+                            # Start the text-to-speech function in a separate thread
+                            tts_thread = threading.Thread(target=text_to_speech_thread, args=(string1,))
+                            tts_thread.start()
+                            completion = rest  # Reset completion to contain only the remaining text
+                            first_sentence_processed = True
         
         if chunk.choices[0].delta.tool_calls:
             tcchunklist = delta.tool_calls
