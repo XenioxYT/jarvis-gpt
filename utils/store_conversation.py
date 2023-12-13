@@ -42,7 +42,7 @@ def trim_conversation_to_fit_limit(conversation, token_limit, conversation_id):
         
         store_conversation(conversation_id, conversation)
 
-def store_conversation(conversation_id, conversation, is_busy=False):
+def store_conversation(conversation_id, conversation):
     
     token_limit = 7000
     
