@@ -37,7 +37,7 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
-model_id = "distil-whisper/distil-large-v2"
+model_id = "distil-whisper/distil-medium.en"
 
 model = AutoModelForSpeechSeq2Seq.from_pretrained(
     model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
@@ -229,7 +229,7 @@ def transcribe(filename='temp.wav'):
         device=device,
     )
     result = pipe(filename)
-    print(result["text"])
+    return result["text"]
 
 def split_first_sentence(text):
     # This regex looks for a period, exclamation mark, or question mark followed by a space and an uppercase letter.
@@ -589,37 +589,14 @@ def main():
 
             save_audio(accumulated_frames)
             print("Processing audio...")
-            # play_sound(THINKING_SOUND)
             command = transcribe()
             print(f"You said: {command}")
-            # user_query_result = user_query(command)
-            # print(f"User query result: {user_query_result}")
-            # if user_query_result in ["resume_music", "pause_music", "turn_on_device", "turn_off_device"]:
-            #     stop_thinking_sound()
-            #     if user_query_result == "turn_on_device":
-            #         toggle_entity("switch.desk_lamp_socket_1", switch=True)
-            #         text_to_speech("Desk lamp turned on.")
-            #     elif user_query_result == "turn_off_device":
-            #         toggle_entity("switch.desk_lamp_socket_1", switch=False)
-            #         text_to_speech("Desk lamp turned off.")
-            #     elif user_query_result == "resume_music":
-            #         play_spotify()
-            #         text_to_speech("Spotify playback started.")
-            #     elif user_query_result == "pause_music":
-            #         pause_spotify()
-            #         text_to_speech("Spotify playback paused.")
-            # else:
             response = get_chatgpt_response(command)
             if spotify_was_playing:
                 toggle_spotify_playback()
-            stop_thinking_sound()
-            # play_sound(SUCCESS_SOUND)  # Play success sound before speaking out the response
             text_to_speech(response)
             if spotify_was_playing:
-                # handle_follow_ups(audio_stream, vad, response)
                 toggle_spotify_playback(force_play=True)
-                # handle_follow_ups(audio_stream, vad, response)
-            # After responding, start listening for a follow-up response
                 
 
     audio_stream.close()
