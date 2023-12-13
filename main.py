@@ -282,15 +282,18 @@ def get_chatgpt_response(text, function=False, function_name=None):
     )
     
     completion = ""
+    full_completion = ""
     first_sentence_processed = False
     first_sentence_processed_second_response = False
     waiting_for_number = False
+    waiting_for_number_second_response = False
     tool_calls = []
 
     for chunk in response:
         delta = chunk.choices[0].delta
         if delta.content or delta.content == '':
             completion += chunk.choices[0].delta.content
+            full_completion += chunk.choices[0].delta.content
             
             if waiting_for_number and completion[0].isdigit():
                 # Append the number to the previously processed sentence
@@ -423,32 +426,33 @@ def get_chatgpt_response(text, function=False, function_name=None):
                 delta = chunk.choices[0].delta
                 if delta.content or delta.content == '':
                     completion += chunk.choices[0].delta.content
-                    
-                    if waiting_for_number and completion[0].isdigit():
+                    full_completion_2 += chunk.choices[0].delta.content
+
+                    if waiting_for_number_second_response and completion[0].isdigit():
                         # Append the number to the previously processed sentence
                         string1 += completion
-                        waiting_for_number = False
+                        waiting_for_number_second_response = False
                         # Continue with text-to-speech and rest of the processing
                         # ...
-            
-                    elif not first_sentence_processed and any(punctuation in completion for punctuation in ["!", ".", "?"]):
+
+                    elif not first_sentence_processed_second_response and any(punctuation in completion for punctuation in ["!", ".", "?"]):
                         if not re.search(r'\d+\.\d+', completion):
                             string1, rest = split_first_sentence(completion)
-        
+
                             # Check if string1 ends with a pattern like "number."
                             if re.search(r'\d\.$', string1):
-                                waiting_for_number = True
+                                waiting_for_number_second_response = True
                             else:
                                 if string1:
                                     # Start the text-to-speech function in a separate thread
                                     tts_thread = threading.Thread(target=text_to_speech_thread, args=(string1,))
                                     tts_thread.start()
                                     completion = rest  # Reset completion to contain only the remaining text
-                                    first_sentence_processed = True
+                                    first_sentence_processed_second_response = True
             messages.append(
                 {
                     "role": "assistant",
-                    "content": completion,
+                    "content": full_completion_2,
                 }
             )
             store_conversation(1, messages)
@@ -460,7 +464,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
         messages.append(
             {
                 "role": "assistant",
-                "content": completion,
+                "content": full_completion,
             }
         )
         store_conversation(1, messages)
