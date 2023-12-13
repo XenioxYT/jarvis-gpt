@@ -135,7 +135,6 @@ SUCCESS_SOUND = "./success.wav"
 
 client = texttospeech.TextToSpeechClient()
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model = whisper.load_model("large").to(device)
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
@@ -229,7 +228,7 @@ def transcribe(filename='temp.wav'):
         torch_dtype=torch_dtype,
         device=device,
     )
-    result = pipe("temp.wav")
+    result = pipe(filename)
     print(result["text"])
 
 def split_first_sentence(text):
