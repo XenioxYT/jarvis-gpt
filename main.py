@@ -329,7 +329,7 @@ def get_chatgpt_response(text, function=False, function_name=None):
             messages.append(
                 {
                     "role": "assistant",
-                    "content": "You called a function with the following parameters" + function_name + " " + function_args,
+                    "content": "You called a function with the following parameters" + function_name + " " + str(function_args),
                 }
             )
             store_conversation(1, messages)
