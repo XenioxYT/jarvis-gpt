@@ -458,8 +458,11 @@ def get_chatgpt_response(text, function=False, function_name=None):
             )
             store_conversation(1, messages)
             # Assume that we return the final response text after the tool call handling
-            if tts_thread.is_alive():
-                tts_thread.join()
+            try:
+                if tts_thread.is_alive():
+                    tts_thread.join()
+            except:
+                pass
             return completion
     else:
         messages.append(
