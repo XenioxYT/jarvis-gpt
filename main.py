@@ -679,7 +679,7 @@ def main():
                     # Accumulate the suppressed frames
                     accumulated_frames.append(vad_buffer)
             
-                    if num_silent_frames > 30:  # Stop capturing after a short period of silence
+                    if num_silent_frames > 60:  # Stop capturing after a short period of silence
                         print("Done capturing.")
                         play_sound(STOPPED_LISTENING_SOUND)
                         if spotify_was_playing:
