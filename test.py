@@ -243,27 +243,27 @@ labels = [
     "multiple", "multiple", "multiple", "multiple", "multiple",
 ]
 
-from sklearn.feature_extraction.text import TfidfVectorizer
+# from sklearn.feature_extraction.text import TfidfVectorizer
 
-# Initialize the vectorizer
-vectorizer = TfidfVectorizer()
+# # Initialize the vectorizer
+# vectorizer = TfidfVectorizer()
 
-# Fit and transform the phrases
-X = vectorizer.fit_transform(phrases)
-from sklearn.linear_model import LogisticRegression
+# # Fit and transform the phrases
+# X = vectorizer.fit_transform(phrases)
+# from sklearn.linear_model import LogisticRegression
 
-# Initialize the classifier
-classifier = LogisticRegression()
+# # Initialize the classifier
+# classifier = LogisticRegression()
 
-# Train the classifier
-classifier.fit(X, labels)
+# # Train the classifier
+# classifier.fit(X, labels)
 import joblib
 
-# Save the classifier
-joblib.dump(classifier, 'light_intent_classifier.pkl')
+# # Save the classifier
+# joblib.dump(classifier, 'light_intent_classifier.pkl')
 
-# Save the vectorizer
-joblib.dump(vectorizer, 'vectorizer.pkl')
+# # Save the vectorizer
+# joblib.dump(vectorizer, 'vectorizer.pkl')
 # Load the classifier and vectorizer
 classifier = joblib.load('light_intent_classifier.pkl')
 vectorizer = joblib.load('vectorizer.pkl')
@@ -274,6 +274,6 @@ def predict_intent(command):
     return classifier.predict(X)[0]
 
 # Example usage
-command = "tell me the weather and the date"
+command = "date n then turn off the lights"
 intent = predict_intent(command)
 print(f"Predicted intent: {intent}")
