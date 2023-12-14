@@ -146,7 +146,7 @@ REMINDERS_DB_FILE = 'reminders.json'
 def check_reminders(cursor=None, db_conn=None):
     current_time = datetime.datetime.now().replace(second=0, microsecond=0)
     reminders = load_reminders()
-    print(reminders)
+    # print(reminders)
     
     due_reminders = [r for r in reminders if not r['notified'] and datetime.datetime.fromisoformat(r['time']) == current_time]
     
@@ -291,7 +291,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
         delta = chunk.choices[0].delta
         if delta.content or delta.content == '':
             completion += chunk.choices[0].delta.content
-            print(completion)
+            # print(completion)
             full_completion += chunk.choices[0].delta.content
             
             if waiting_for_number and completion[0].isdigit():
@@ -432,7 +432,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
                 delta = chunk.choices[0].delta
                 if delta.content or delta.content == '':
                     completion += chunk.choices[0].delta.content
-                    print(completion)
+                    # print(completion)
                     full_completion_2 += chunk.choices[0].delta.content
                     
                     if tts_thread_function.is_alive():

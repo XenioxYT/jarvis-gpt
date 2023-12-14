@@ -53,7 +53,7 @@ def extract_features(file_path):
     return mean_mfcc.reshape(1, -1)
 
 # Function to predict speaker with confidence check
-def predict_speaker(model, features, threshold=0.7):
+def predict_speaker(model, features, threshold=0.5):
     probabilities = model.predict_proba(features)[0]
     max_prob = np.max(probabilities)
     predicted_speaker = model.classes_[np.argmax(probabilities)]
@@ -69,6 +69,7 @@ model = joblib.load('speaker_identification_model.pkl')
 def identify_speaker(audio_file_path):
     features = extract_features(audio_file_path)
     speaker = predict_speaker(model, features)
+    print(speaker)
     if speaker == "speaker1":
         speaker = "Tom"
     else:
