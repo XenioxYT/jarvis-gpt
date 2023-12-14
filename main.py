@@ -131,10 +131,10 @@ oai_client = OpenAI(base_url=api_base, api_key=api_key)
 pv_access_key = os.getenv("PORCUPINE_ACCESS_KEY")
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./creds.json"
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
-LISTENING_SOUND = "./started_listening.wav"
-STOPPED_LISTENING_SOUND = "./stopped_listening.wav"
-THINKING_SOUND = "./thinking.wav"
-SUCCESS_SOUND = "./success.wav"
+LISTENING_SOUND = "./sounds/started_listening.wav"
+STOPPED_LISTENING_SOUND = "./sounds/stopped_listening.wav"
+THINKING_SOUND = "./sounds/thinking.wav"
+SUCCESS_SOUND = "./sounds/success.wav"
 
 client = texttospeech.TextToSpeechClient()
 device = "cuda" if torch.cuda.is_available() else "cpu"
