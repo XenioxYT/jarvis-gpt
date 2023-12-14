@@ -29,7 +29,7 @@ from utils.weather import get_weather_data
 from calendar_utils import check_calendar, add_event_to_calendar
 from utils.home_assistant import toggle_entity
 from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device, play_spotify, pause_spotify
-from classiciation import user_query, is_english_text
+from classification import user_query, is_english_text
 from utils.store_conversation import store_conversation
 from user_classification import identify_speaker
 
