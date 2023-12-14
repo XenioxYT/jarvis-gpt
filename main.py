@@ -6,6 +6,7 @@ import struct
 import threading
 import time
 import pyaudio
+import pvkoala
 import wave
 import requests
 import numpy as np
@@ -142,7 +143,10 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 REMINDERS_DB_FILE = 'reminders.json'
-    
+
+porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
+koala = pvkoala.create(access_key=pv_access_key)
+
 def check_reminders(cursor=None, db_conn=None):
     current_time = datetime.datetime.now().replace(second=0, microsecond=0)
     reminders = load_reminders()
@@ -171,7 +175,7 @@ def reminder_daemon():
 pa = pyaudio.PyAudio()
 
 # Initialize Porcupine for wake word detection
-porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
+
 
 # Function to continuously capture audio until user stops speaking
 def capture_speech(vad, audio_stream):
@@ -626,13 +630,14 @@ def main():
     
     # get_chatgpt_response("Can you play your fav song and then set a reminder for me to do my homework at 5pm?")
 
-    vad = webrtcvad.Vad(2)
+    vad = webrtcvad.Vad(3)
 
     print("Say 'Jarvis' to wake up the assistant...")
 
     while True:
         pcm = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
         pcm_unpacked = struct.unpack_from("h" * porcupine.frame_length, pcm)
+        # pcm_suppressed = koala.process(pcm_unpacked)
         keyword_index = porcupine.process(pcm_unpacked)
 
         if keyword_index >= 0:
@@ -644,28 +649,44 @@ def main():
             play_sound(LISTENING_SOUND)
             accumulated_frames = []
             num_silent_frames = 0
+            vad_frame_accumulator = []
             vad_frame_len = int(0.02 * 16000)  # 20 ms
 
             while True:
-                pcm = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
-                pcm_unpacked = struct.unpack_from("h" * porcupine.frame_length, pcm)
-                vad_buffer = b''.join(struct.pack('h', frame) for frame in pcm_unpacked)
-                is_speech = vad.is_speech(vad_buffer[:2 * vad_frame_len], 16000)
+                pcm = audio_stream.read(koala.frame_length, exception_on_overflow=False)
+                pcm_unpacked = struct.unpack_from("h" * koala.frame_length, pcm)
 
-                if is_speech:
-                    num_silent_frames = 0
-                else:
-                    num_silent_frames += 1
+                # Apply Koala noise suppression
+                pcm_suppressed = koala.process(pcm_unpacked)
 
-                accumulated_frames.append(vad_buffer)
+                # Accumulate the suppressed frames for a full VAD frame
+                vad_frame_accumulator.extend(pcm_suppressed)
 
-                if num_silent_frames > 30:  # Stop capturing after a short period of silence
-                    print("Done capturing.")
-                    play_sound(STOPPED_LISTENING_SOUND)
-                    if spotify_was_playing:
-                        toggle_spotify_playback(force_play=True)
-                    break
+                # Once enough samples are accumulated for a 20 ms frame, process with VAD
+                if len(vad_frame_accumulator) >= vad_frame_len:
+                    vad_frame = vad_frame_accumulator[:vad_frame_len]
+                    vad_buffer = b''.join(struct.pack('h', sample) for sample in vad_frame)
+                    is_speech = vad.is_speech(vad_buffer, 16000)
 
+                    # Remove processed samples from the accumulator
+                    vad_frame_accumulator = vad_frame_accumulator[vad_frame_len:]
+
+                    if is_speech:
+                        num_silent_frames = 0
+                    else:
+                        num_silent_frames += 1
+
+                    # Accumulate the suppressed frames
+                    accumulated_frames.append(vad_buffer)
+            
+                    if num_silent_frames > 30:  # Stop capturing after a short period of silence
+                        print("Done capturing.")
+                        play_sound(STOPPED_LISTENING_SOUND)
+                        if spotify_was_playing:
+                            toggle_spotify_playback(force_play=True)
+                        break
+                
+            # Save the suppressed audio
             save_audio(accumulated_frames)
             print("Processing audio...")
             command = transcribe()
