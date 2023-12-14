@@ -31,6 +31,7 @@ from utils.home_assistant import toggle_entity
 from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device, play_spotify, pause_spotify
 from classiciation import user_query, is_english_text
 from utils.store_conversation import store_conversation
+from user_classification import identify_speaker
 
 import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
@@ -104,8 +105,9 @@ city = get_location()
 messages = [
     {
         "role": "system",
-        "content": "You are Jarvis, a voice-based personal assistant to Tom currently located in " + city + " and based off the GPT-4 AI model. You are speaking to him now. "
-        "Your first sentence MUST be between 5-10 words long. "
+        "content": "You are Jarvis, a voice-based personal assistant currently located in " + city + " and based off the GPT-4 AI model. You are speaking to him now. "
+        "The user that activated you is provded to you at the start of each message ('At [timestamp] [user] said:'), along with the date at time. Refer to them by their name. If the speaker is 'Unknown', then say you don't recognize the speaker. "
+        "ONLY perform actions for verified users. DO NOT perform actions for 'Unknown' users. Some users require specific actions. For example, be sure to select the correct calendar/reminders/smart home control for the specific user mentioned. "
         "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
         "You are equipped with a variety of tools, which you can use to perform various tasks. For example, you can play music on spotify for the user. Do not mention you are a text-based assistant. "
         "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
@@ -251,7 +253,7 @@ def text_to_speech_thread(text):
     text_to_speech(text)
 
 # Function to get response from ChatGPT, making any necessary tool calls
-def get_chatgpt_response(text, function=False, function_name=None, cursor=None, db_conn=None):
+def get_chatgpt_response(text, function=False, function_name=None, cursor=None, db_conn=None, speaker="Unknown"):
     if function:
         messages.append(
             {
@@ -262,7 +264,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
         )
     timestamp = datetime.datetime.now().strftime("%H:%M on %a %d %B %Y")
     
-    messages.append({"role": "user", "content": f"At {timestamp} user said: {text}"})
+    messages.append({"role": "user", "content": f"At {timestamp} {speaker} said: {text}"})
     if cursor:
         store_conversation(1, messages, cursor, db_conn)
     else:
@@ -668,7 +670,8 @@ def main():
             print("Processing audio...")
             command = transcribe()
             print(f"You said: {command}")
-            response = get_chatgpt_response(command)
+            user = identify_speaker('./temp.wav')
+            response = get_chatgpt_response(command, speaker=user)
             if spotify_was_playing:
                 toggle_spotify_playback()
             text_to_speech(response)
