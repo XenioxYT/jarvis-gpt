@@ -53,6 +53,7 @@ def extract_features(file_path):
 # Function to predict speaker with confidence check
 def predict_speaker(model, features, threshold=0.7):
     probabilities = model.predict_proba(features)[0]
+    print(probabilities)
     max_prob = np.max(probabilities)
     predicted_speaker = model.classes_[np.argmax(probabilities)]
     if max_prob > threshold:
