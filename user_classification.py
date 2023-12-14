@@ -67,7 +67,12 @@ model = joblib.load('speaker_identification_model.pkl')
 # New function to identify speaker from an audio file
 def identify_speaker(audio_file_path):
     features = extract_features(audio_file_path)
-    return predict_speaker(model, features)
+    speaker = predict_speaker(model, features)
+    if speaker == "speaker1":
+        speaker = "Tom"
+    else:
+        speaker = "Unknown"
+    return speaker
 
 # Example usage
 new_audio_file = './Recording.wav'
