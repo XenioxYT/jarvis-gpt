@@ -6,13 +6,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score
 
-# Step 2: Data Preparation
-dataset_path = "./dataset"
-labels = []
-features = []
-
 # Extract features from each audio file
 def train_model():
+    dataset_path = "./dataset"
+    labels = []
+    features = []
     for speaker in os.listdir(dataset_path):
         speaker_path = os.path.join(dataset_path, speaker)
         if os.path.isdir(speaker_path):
@@ -77,6 +75,7 @@ def identify_speaker(audio_file_path):
     return speaker
 
 # Example usage
+# train_model()
 new_audio_file = './Recording.wav'
 speaker = identify_speaker(new_audio_file)
 print(f"Predicted Speaker: {speaker}")
