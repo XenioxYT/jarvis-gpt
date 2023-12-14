@@ -15,3 +15,5 @@ __pycache__/test.cpython-310.pyc
 __pycache__/classiciation.cpython-310.pyc
 utils/__pycache__/strings.cpython-310.pyc
 test.wav
+__pycache__/user_classification.cpython-310.pyc
+utils/__pycache__/store_conversation.cpython-310.pyc
