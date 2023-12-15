@@ -193,8 +193,10 @@ def enroll_user_handler(name):
 
     return enroll_user(pv_access_key, audio_files, f"./user_models/{name}.pv")
 
-def determine_user_handler(audio_path):
-    return determine_speaker(pv_access_key, "./user_models/", audio_path)
+def determine_user_handler():
+    input_profile_paths = [f'./user_models/{name}.pv' for name in os.listdir('./user_models/')]
+    audio_path = './temp.wav'
+    return determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths, test_audio_path=audio_path)
 
 # Function to continuously capture audio until user stops speaking
 def capture_speech(vad, audio_stream):

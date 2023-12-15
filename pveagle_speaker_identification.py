@@ -98,7 +98,7 @@ def read_file(file_name, sample_rate):
     frames = struct.unpack('h' * num_frames, samples)
     return frames
 
-def determine_speaker(access_key, library_path, model_path, input_profile_paths, test_audio_path):
+def determine_speaker(access_key, input_profile_paths, test_audio_path):
     # Read the audio file
     def read_file(file_name, sample_rate):
         with wave.open(file_name, mode="rb") as wav_file:
@@ -128,8 +128,6 @@ def determine_speaker(access_key, library_path, model_path, input_profile_paths,
     # Create the Eagle recognizer
     eagle = pveagle.create_recognizer(
         access_key=access_key,
-        model_path=model_path,
-        library_path=library_path,
         speaker_profiles=speaker_profiles)
 
     # Process the audio and determine the speaker
