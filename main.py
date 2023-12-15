@@ -198,7 +198,7 @@ def determine_user_handler():
     if not os.listdir('./user_models/'):
         print("The directory is empty")
         return "Unknown"  # or handle the error in another appropriate way
-    input_profile_paths = [f'./user_models/{name}.pv' for name in os.listdir('./user_models/')]
+    input_profile_paths = [f'./user_models/{name}' for name in os.listdir('./user_models/')]
     audio_path = './temp.wav'
     return determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths, test_audio_path=audio_path)
 
