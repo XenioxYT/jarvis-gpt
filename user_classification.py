@@ -77,6 +77,6 @@ def identify_speaker(audio_file_path):
 
 # Example usage
 # train_model()
-new_audio_file = './Recording.wav'
-speaker = identify_speaker(new_audio_file)
-print(f"Predicted Speaker: {speaker}")
+# new_audio_file = './Recording.wav'
+# speaker = identify_speaker(new_audio_file)
+# print(f"Predicted Speaker: {speaker}")
