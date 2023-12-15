@@ -582,7 +582,7 @@ def text_to_speech(text):
     p = pyaudio.PyAudio()
     stream = p.open(format=p.get_format_from_width(2),
                     channels=1,
-                    rate=24000,  # Ensure this matches the sample rate from the TTS response
+                    rate=48000,  # Ensure this matches the sample rate from the TTS response
                     output=True,
                     stream_callback=callback)
     
