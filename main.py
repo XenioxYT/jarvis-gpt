@@ -713,7 +713,7 @@ def main():
             print("Processing audio...")
             command = transcribe()
             print(f"You said: {command}")
-            user = determine_user_handler("./temp.wav")
+            user = determine_user_handler()
             response = get_chatgpt_response(command, speaker=str(user))
             if spotify_was_playing:
                 toggle_spotify_playback()
