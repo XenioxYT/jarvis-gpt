@@ -32,6 +32,7 @@ from utils.home_assistant import toggle_entity
 from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device, play_spotify, pause_spotify
 from classification import user_query, is_english_text
 from utils.store_conversation import store_conversation
+from pveagle_speaker_identification import enroll_user, determine_speaker
 from user_classification import identify_speaker
 
 import torch
@@ -109,6 +110,7 @@ messages = [
         "content": "You are Jarvis, a voice-based personal assistant currently located in " + city + " and based off the GPT-4 AI model. You are speaking to him now. "
         "The user that activated you is provded to you at the start of each message ('At [timestamp] [user] said:'), along with the date at time. Refer to them by their name. If the speaker is 'Unknown', then say you don't recognize the speaker. "
         "ONLY perform actions for verified users. DO NOT perform actions for 'Unknown' users. Some users require specific actions. For example, be sure to select the correct calendar/reminders/smart home control for the specific user mentioned. "
+        "You can enroll users using the enroll_user function. However, before calling this function you MUST give the user a sentence of 10 words to say, AND ask their name. For example: 'The quick brown... [name]'. Insert this name into the correct field. "
         "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
         "You are equipped with a variety of tools, which you can use to perform various tasks. For example, you can play music on spotify for the user. Do not mention you are a text-based assistant. "
         "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
@@ -174,8 +176,8 @@ def reminder_daemon():
 # Initialize PyAudio
 pa = pyaudio.PyAudio()
 
-# Initialize Porcupine for wake word detection
-
+def enroll_user_handler(name):
+    enroll_user(pv_access_key, "./temp.wav", f"./user_models/{name}.pv")
 
 # Function to continuously capture audio until user stops speaking
 def capture_speech(vad, audio_stream):
@@ -349,6 +351,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "add_event_to_calendar": add_event_to_calendar,
             "control_switch": toggle_entity,
             "play_song_on_spotify": search_spotify_song,
+            "enroll_user": enroll_user_handler,
         }
         
         if len(tool_calls) > 1:
@@ -691,8 +694,8 @@ def main():
             print("Processing audio...")
             command = transcribe()
             print(f"You said: {command}")
-            user = identify_speaker('./temp.wav')
-            response = get_chatgpt_response(command, speaker=user)
+            # user = identify_speaker('./temp.wav')
+            response = get_chatgpt_response(command)
             if spotify_was_playing:
                 toggle_spotify_playback()
             text_to_speech(response)
@@ -703,6 +706,7 @@ def main():
     audio_stream.close()
     pa.terminate()
     porcupine.delete()
+    koala.delete()
 
 reminder_daemon_thread = threading.Thread(target=reminder_daemon, daemon=True)
 reminder_daemon_thread.start()

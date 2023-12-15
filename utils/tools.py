@@ -20,6 +20,23 @@ tools = [
             },
         }
     },
+        {
+        "type": "function",
+        "function": {
+            "name": "enroll_user",
+            "description": "DO NOT call the function at first. First, ask the user to say a sentence of 10 words, then ask for their name. For example: '[sentence] [name]'",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The name of the user.",
+                    }
+                },
+                "required": ["name"],
+            },
+        },
+    },
     {
         "type": "function",
         "function": {
