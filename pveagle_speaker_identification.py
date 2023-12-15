@@ -146,18 +146,22 @@ def determine_speaker(access_key, input_profile_paths, test_audio_path):
     average_scores = [sum(x) / len(x) for x in zip(*speakers_scores)]
     max_score_index = average_scores.index(max(average_scores))
     selected_speaker = speaker_labels[max_score_index]
+    
+    print(average_scores)
+    
+    if average_scores[max_score_index] < 0.3:
+        selected_speaker = "Unknown"
 
     return selected_speaker
 
 # Example usage:
 # Replace these with the appropriate paths and access key.
 # access_key = ''
-# library_path = None # or the path to the Picovoice Eagle dynamic library
-# model_path = None # or the path to the Picovoice Eagle model file
-# input_profile_paths = ['./output_profile.pv'] # Paths to speaker profiles
-# test_audio_path = './harvard.wav' # Path to the audio file to test
 
-# speaker = determine_speaker(access_key, library_path, model_path, input_profile_paths, test_audio_path)
+# input_profile_paths = ['./Tom.pv'] # Paths to speaker profiles
+# test_audio_path = './temp.wav' # Path to the audio file to test
+
+# speaker = determine_speaker(access_key, input_profile_paths, test_audio_path)
 # print("The determined speaker is:", speaker)
 
 def enroll_user(access_key, enroll_audio_paths, output_profile_path):
