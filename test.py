@@ -274,6 +274,6 @@ def predict_intent(command):
     return classifier.predict(X)[0]
 
 # Example usage
-command = "date n then turn off the lights"
+command = "plunge me into darkness"
 intent = predict_intent(command)
 print(f"Predicted intent: {intent}")

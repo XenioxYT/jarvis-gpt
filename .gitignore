@@ -18,3 +18,5 @@ test.wav
 __pycache__/user_classification.cpython-310.pyc
 utils/__pycache__/store_conversation.cpython-310.pyc
 __pycache__/pveagle.cpython-310.pyc
+conversations.db
+__pycache__/pveagle_speaker_identification.cpython-310.pyc

@@ -194,7 +194,7 @@ def enroll_user(access_key, enroll_audio_paths, output_profile_path):
         else:
             print('Failed to create speaker profile. Insufficient enrollment percentage: %.2f%%. '
                   'Please add more audio files for enrollment.' % enroll_percentage)
-            return None, FEEDBACK_TO_DESCRIPTIVE_MSG[enrollment_feedback]
+            return FEEDBACK_TO_DESCRIPTIVE_MSG[enrollment_feedback] + "Please get the user to say another sentence. Keep going until 100 percent is reached. "
     finally:
         eagle_profiler.delete()
 
