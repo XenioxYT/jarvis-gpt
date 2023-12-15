@@ -676,7 +676,7 @@ def main():
             num_silent_frames = 0
             vad_frame_accumulator = []
             vad_frame_len = int(0.02 * 16000)  # 20 ms
-            volume_boost_factor = 1.5  # Adjust this value as needed
+            volume_boost_factor = 2.5  # Adjust this value as needed
 
             while True:
                 pcm = audio_stream.read(koala.frame_length, exception_on_overflow=False)
