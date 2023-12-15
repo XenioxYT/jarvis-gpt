@@ -193,6 +193,9 @@ def enroll_user_handler(name):
 
     return enroll_user(pv_access_key, audio_files, f"./user_models/{name}.pv")
 
+def determine_user_handler(audio_path):
+    return determine_speaker(pv_access_key, "./user_models/", audio_path)
+
 # Function to continuously capture audio until user stops speaking
 def capture_speech(vad, audio_stream):
     print("Listening for your command...")
@@ -708,8 +711,8 @@ def main():
             print("Processing audio...")
             command = transcribe()
             print(f"You said: {command}")
-            # user = identify_speaker('./temp.wav')
-            response = get_chatgpt_response(command)
+            user = determine_user_handler("./temp.wav")
+            response = get_chatgpt_response(command, speaker=str(user))
             if spotify_was_playing:
                 toggle_spotify_playback()
             text_to_speech(response)
