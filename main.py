@@ -14,6 +14,8 @@ import torch
 import webrtcvad
 import queue as thread_queue
 import pvporcupine
+import shutil
+import random
 from dotenv import load_dotenv
 from openai import OpenAI
 from google.cloud import texttospeech
@@ -177,7 +179,19 @@ def reminder_daemon():
 pa = pyaudio.PyAudio()
 
 def enroll_user_handler(name):
-    return enroll_user(pv_access_key, ["./temp.wav"], f"./user_models/{name}.pv")
+    # Generate a random number
+    random_number = random.randint(1, 1000)
+
+    # Create the destination directory if it doesn't exist
+    os.makedirs(f'./user_dataset_temp/{name}', exist_ok=True)
+
+    # Copy and move the file
+    destination = f"./user_dataset_temp/{name}/{random_number}.wav"
+    shutil.copy("./temp.wav", destination)
+    
+    audio_files = [f"./user_dataset_temp/{name}/{file}" for file in os.listdir(f"./user_dataset_temp/{name}")]
+
+    return enroll_user(pv_access_key, [audio_files], f"./user_models/{name}.pv")
 
 # Function to continuously capture audio until user stops speaking
 def capture_speech(vad, audio_stream):
