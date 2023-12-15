@@ -190,11 +190,11 @@ def enroll_user(access_key, enroll_audio_paths, output_profile_path):
                 with open(output_profile_path, 'wb') as f:
                     f.write(speaker_profile.to_bytes())
                 print('Speaker profile is saved to %s' % output_profile_path)
-                return output_profile_path, FEEDBACK_TO_DESCRIPTIVE_MSG[enrollment_feedback]
+                return str(FEEDBACK_TO_DESCRIPTIVE_MSG[enrollment_feedback]) + " User enrolled successfully. "
         else:
             print('Failed to create speaker profile. Insufficient enrollment percentage: %.2f%%. '
                   'Please add more audio files for enrollment.' % enroll_percentage)
-            return FEEDBACK_TO_DESCRIPTIVE_MSG[enrollment_feedback] + "Please get the user to say another sentence. Keep going until 100 percent is reached. "
+            return "Insufficient enrollment percentage: %.2f%%."+ str(FEEDBACK_TO_DESCRIPTIVE_MSG[enrollment_feedback]) + " Please get the user to say another sentence. Keep going until 100 percent is reached. "
     finally:
         eagle_profiler.delete()
 
