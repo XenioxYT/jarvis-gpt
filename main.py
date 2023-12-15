@@ -177,7 +177,7 @@ def reminder_daemon():
 pa = pyaudio.PyAudio()
 
 def enroll_user_handler(name):
-    enroll_user(pv_access_key, ["./temp.wav"], f"./user_models/{name}.pv")
+    return enroll_user(pv_access_key, ["./temp.wav"], f"./user_models/{name}.pv")
 
 # Function to continuously capture audio until user stops speaking
 def capture_speech(vad, audio_stream):
