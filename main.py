@@ -676,13 +676,16 @@ def main():
             num_silent_frames = 0
             vad_frame_accumulator = []
             vad_frame_len = int(0.02 * 16000)  # 20 ms
+            volume_boost_factor = 1.5  # Adjust this value as needed
 
             while True:
                 pcm = audio_stream.read(koala.frame_length, exception_on_overflow=False)
                 pcm_unpacked = struct.unpack_from("h" * koala.frame_length, pcm)
 
+                pcm_boosted = [int(sample * volume_boost_factor) for sample in pcm_unpacked]
+
                 # Apply Koala noise suppression
-                pcm_suppressed = koala.process(pcm_unpacked)
+                pcm_suppressed = koala.process(pcm_boosted)
 
                 # Accumulate the suppressed frames for a full VAD frame
                 vad_frame_accumulator.extend(pcm_suppressed)
