@@ -149,7 +149,7 @@ def determine_speaker(access_key, input_profile_paths, test_audio_path):
     
     print(average_scores)
     
-    if average_scores[max_score_index] < 0.05:
+    if average_scores[max_score_index] < 0.2:
         selected_speaker = "Unknown"
 
     return selected_speaker
