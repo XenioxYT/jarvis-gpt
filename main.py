@@ -111,7 +111,7 @@ messages = [
         "content": "You are Jarvis, a voice-based personal assistant currently located in " + city + " and based off the GPT-4 AI model. You are speaking to him now. "
         "The user that activated you is provded to you at the start of each message ('At [timestamp] [user] said:'), along with the date at time. Refer to them by their name. If the user is 'Unknown', then say you don't recognize the speaker. ALWAYS check the user before performing any actions. "
         "ONLY perform actions for verified users. DO NOT perform actions for 'Unknown' users. Some users require specific actions. For example, be sure to select the correct calendar/reminders/smart home control for the specific user mentioned. "
-        "You can enroll users using the function. However, BEFORE using this function you MUST give the user a sentence of 10 words to say, AND ask their name. For example: 'The quick brown... [name]'. Insert this name into the correct field. "
+        "You can enroll users using the function. However, BEFORE using this function you MUST give the user a sentence of 10 words to say, AND ask their name. For example: 'The quick brown... [name]'. Insert this name into the correct field. This is to train the model to recognize the user's voice. "
         "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
         "You are equipped with a variety of tools, which you can use to perform various tasks. For example, you can play music on spotify for the user. Do not mention you are a text-based assistant. "
         "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
@@ -571,12 +571,6 @@ def text_to_speech(text):
     def callback(in_data, frame_count, time_info, status):
         data = audio_buffer.read(frame_count * 2)  # 2 bytes per sample for LINEAR16
         return (data, pyaudio.paContinue)
-
-    # Then, play the audio buffer using PyAudio
-    # Define PyAudio stream callback for asynchronous playback
-    def callback(in_data, frame_count, time_info, status):
-        data = audio_buffer.read(frame_count * 2)  # 2 bytes per sample for LINEAR16
-        return (data, pyaudio.paContinue)
     
     # Initialize PyAudio and open a stream for playback
     p = pyaudio.PyAudio()
@@ -653,6 +647,8 @@ def main():
         frames_per_buffer=porcupine.frame_length
     )
     
+    play_sound(LISTENING_SOUND)
+    
     # get_chatgpt_response("Can you play your fav song and then set a reminder for me to do my homework at 5pm?")
 
     vad = webrtcvad.Vad(3)
@@ -668,9 +664,9 @@ def main():
         if keyword_index >= 0:
             print("Jarvis activated. Listening for your command...")
             spotify_was_playing = False
-            if is_spotify_playing_on_device():
-                spotify_was_playing = True
-            toggle_spotify_playback()
+            # if is_spotify_playing_on_device():
+            #     spotify_was_playing = True
+            # toggle_spotify_playback()
             play_sound(LISTENING_SOUND)
             accumulated_frames = []
             num_silent_frames = 0
