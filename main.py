@@ -43,7 +43,7 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
-model_id = "openai/whisper-large-v3"
+model_id = "openai/whisper-tiny"
 
 model = AutoModelForSpeechSeq2Seq.from_pretrained(
     model_id, torch_dtype=torch_dtype, use_safetensors=True
@@ -652,14 +652,16 @@ def main():
     play_sound(SUCCESS_SOUND)
 
     vad = webrtcvad.Vad(3)
+    volume_boost_factor = 2.5
 
     print("Say 'Jarvis' to wake up the assistant...")
 
     while True:
         pcm = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
         pcm_unpacked = struct.unpack_from("h" * porcupine.frame_length, pcm)
+        pcm_boosted = [int(sample * volume_boost_factor) for sample in pcm_unpacked]
         # pcm_suppressed = koala.process(pcm_unpacked)
-        keyword_index = porcupine.process(pcm_unpacked)
+        keyword_index = porcupine.process(pcm_boosted)
 
         if keyword_index >= 0:
             print("Jarvis activated. Listening for your command...")
@@ -672,7 +674,6 @@ def main():
             num_silent_frames = 0
             vad_frame_accumulator = []
             vad_frame_len = int(0.02 * 16000)  # 20 ms
-            volume_boost_factor = 2.5  # Adjust this value as needed
 
             while True:
                 pcm = audio_stream.read(koala.frame_length, exception_on_overflow=False)
@@ -702,7 +703,7 @@ def main():
                     # Accumulate the suppressed frames
                     accumulated_frames.append(vad_buffer)
             
-                    if num_silent_frames > 30:  # Stop capturing after a short period of silence
+                    if num_silent_frames > 60:  # Stop capturing after a short period of silence
                         final_transcript = cheetah.flush()
                         print(f"Final Transcript: {final_transcript}")
                         print("Done capturing.")
