@@ -7,6 +7,7 @@ import threading
 import time
 import pyaudio
 import pvkoala
+import pvcheetah
 import wave
 import requests
 import numpy as np
@@ -150,6 +151,7 @@ REMINDERS_DB_FILE = 'reminders.json'
 
 porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
 koala = pvkoala.create(access_key=pv_access_key)
+cheetah = pvcheetah.create(access_key=pv_access_key, enable_automatic_punctuation=True)
 
 def check_reminders(cursor=None, db_conn=None):
     current_time = datetime.datetime.now().replace(second=0, microsecond=0)
@@ -306,7 +308,6 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
         tools=tools,
         stream=True,
     )
-    
     completion = ""
     full_completion = ""
     full_completion_2 = ""
@@ -686,6 +687,8 @@ def main():
 
                 # Accumulate the suppressed frames for a full VAD frame
                 vad_frame_accumulator.extend(pcm_suppressed)
+                partial_transcript, is_endpoint = cheetah.process(pcm)
+                print(partial_transcript)
 
                 # Once enough samples are accumulated for a 20 ms frame, process with VAD
                 if len(vad_frame_accumulator) >= vad_frame_len:
@@ -704,7 +707,9 @@ def main():
                     # Accumulate the suppressed frames
                     accumulated_frames.append(vad_buffer)
             
-                    if num_silent_frames > 60:  # Stop capturing after a short period of silence
+                    if num_silent_frames > 60 or is_endpoint:  # Stop capturing after a short period of silence
+                        final_transcript = cheetah.flush()
+                        print(f"Final Transcript: {final_transcript}")
                         print("Done capturing.")
                         play_sound(STOPPED_LISTENING_SOUND)
                         if spotify_was_playing:
