@@ -4,6 +4,10 @@ creds.json
 credentials.json
 token.json
 reminders.json
+user_dataset_temp/*
+user_models/*
+pretrained_models/*
+__pycache__/*
 __pycache__/calendar_utils.cpython-310.pyc
 utils/__pycache__/calendar.cpython-310.pyc
 utils/__pycache__/home_assistant.cpython-310.pyc
@@ -20,3 +24,14 @@ utils/__pycache__/store_conversation.cpython-310.pyc
 __pycache__/pveagle.cpython-310.pyc
 conversations.db
 __pycache__/pveagle_speaker_identification.cpython-310.pyc
+__pycache__/classification.cpython-310.pyc
+pretrained_models/asr-crdnn-rnnlm-librispeech/asr.ckpt
+__pycache__/classification.cpython-310.pyc
+pretrained_models/asr-crdnn-rnnlm-librispeech/tokenizer.ckpt
+pretrained_models/asr-crdnn-rnnlm-librispeech/normalizer.ckpt
+pretrained_models/asr-crdnn-rnnlm-librispeech/lm.ckpt
+user_models/Tom.pv
+user_dataset_temp/Tom/635.wav
+user_dataset_temp/Tom/304.wav
+user_dataset_temp/Tom/59.wav
+__pycache__/classification.cpython-310.pyc

@@ -111,7 +111,7 @@ messages = [
         "role": "system",
         "content": "You are Jarvis, a voice-based personal assistant currently located in " + city + " and based off the GPT-4 AI model. You are speaking to him now. "
         "The user that activated you is provded to you at the start of each message ('At [timestamp] [user] said:'), along with the date at time. Refer to them by their name. If the user is 'Unknown', then say you don't recognize the speaker. ALWAYS check the user before performing any actions. "
-        "ONLY perform actions for verified users. DO NOT perform actions for 'Unknown' users. Some users require specific actions. For example, be sure to select the correct calendar/reminders/smart home control for the specific user mentioned. "
+        "ONLY perform actions for verified users. DO NOT perform personal actions for 'Unknown' users, like reminders or calendar management. Some users require specific actions. For example, be sure to select the correct calendar/reminders/smart home control for the specific user mentioned. "
         "You can enroll users using the function. However, BEFORE using this function you MUST give the user a sentence to say, AND ask their name. For example: 'The quick brown... [name]'. Insert this name into the correct field. This is to train the model to recognize the user's voice. "
         "Keep repeating this process (sentence, function), until the user's voice is recognized. "
         "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
@@ -649,9 +649,7 @@ def main():
         frames_per_buffer=porcupine.frame_length
     )
     
-    play_sound(LISTENING_SOUND)
-    
-    # get_chatgpt_response("Can you play your fav song and then set a reminder for me to do my homework at 5pm?")
+    play_sound(SUCCESS_SOUND)
 
     vad = webrtcvad.Vad(3)
 
@@ -683,13 +681,10 @@ def main():
                 pcm_boosted = [int(sample * volume_boost_factor) for sample in pcm_unpacked]
 
                 # Apply Koala noise suppression
-                pcm_suppressed = koala.process(pcm_boosted)
+                # pcm_suppressed = koala.process(pcm_boosted)
 
                 # Accumulate the suppressed frames for a full VAD frame
-                vad_frame_accumulator.extend(pcm_suppressed)
-                partial_transcript, is_endpoint = cheetah.process(pcm)
-                print(partial_transcript)
-
+                vad_frame_accumulator.extend(pcm_boosted)
                 # Once enough samples are accumulated for a 20 ms frame, process with VAD
                 if len(vad_frame_accumulator) >= vad_frame_len:
                     vad_frame = vad_frame_accumulator[:vad_frame_len]
@@ -707,7 +702,7 @@ def main():
                     # Accumulate the suppressed frames
                     accumulated_frames.append(vad_buffer)
             
-                    if num_silent_frames > 60 or is_endpoint:  # Stop capturing after a short period of silence
+                    if num_silent_frames > 30:  # Stop capturing after a short period of silence
                         final_transcript = cheetah.flush()
                         print(f"Final Transcript: {final_transcript}")
                         print("Done capturing.")

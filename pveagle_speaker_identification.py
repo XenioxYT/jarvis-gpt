@@ -1,74 +1,3 @@
-# import pveagle
-# from pvrecorder import PvRecorder
-
-
-# DEFAULT_DEVICE_INDEX = -1
-# access_key = "{YOUR_ACCESS_KEY}";
-
-
-# # Step 1: Enrollment
-# try:
-#     eagle_profiler = pveagle.create_profiler(access_key="+urKHbMJGDpVUab5/mZ/v9QEQtsiEGLF1h13rsbUGGTI1Qt4b1pggA==")
-# except pveagle.EagleError as e:
-#     pass
-
-
-# enroll_recorder = PvRecorder(
-#     device_index=DEFAULT_DEVICE_INDEX,
-#     frame_length=eagle_profiler.min_enroll_samples)
-
-
-# enroll_recorder.start()
-
-
-# enroll_percentage = 0.0
-# while enroll_percentage < 100.0:
-#     print(enroll_percentage)
-#     audio_frame = enroll_recorder.read()
-#     enroll_percentage, feedback = eagle_profiler.enroll(audio_frame)
-
-
-# enroll_recorder.stop()
-
-
-# speaker_profile = eagle_profiler.export()
-
-
-# enroll_recorder.delete()
-# eagle_profiler.delete()
-
-
-# # Step 2: Recognition
-# try:
-#     eagle = pveagle.create_recognizer(
-#         access_key="+urKHbMJGDpVUab5/mZ/v9QEQtsiEGLF1h13rsbUGGTI1Qt4b1pggA==",
-#         speaker_profiles=[speaker_profile]
-#         )
-# except pveagle.EagleError as e:
-#     print(e)
-#     pass
-
-
-# recognizer_recorder = PvRecorder(
-#     device_index=DEFAULT_DEVICE_INDEX,
-#     frame_length=eagle.frame_length)
-
-
-# recognizer_recorder.start()
-
-
-# while True:
-#     audio_frame = recognizer_recorder.read()
-#     scores = eagle.process(audio_frame)
-#     print(scores)
-
-
-# recognizer_recorder.stop()
-
-
-# recognizer_recorder.delete()
-# eagle.delete()
-
 import wave
 import struct
 import os
@@ -149,7 +78,7 @@ def determine_speaker(access_key, input_profile_paths, test_audio_path):
     
     print(average_scores)
     
-    if average_scores[max_score_index] < 0.2:
+    if average_scores[max_score_index] < 0.1:
         selected_speaker = "Unknown"
 
     return selected_speaker
