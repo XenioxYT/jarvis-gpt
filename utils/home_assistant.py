@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 def toggle_entity(entity_id, switch):
     if switch == "true" or switch == "True" or switch == True:
         switch = True
@@ -45,7 +46,6 @@ def toggle_entity(entity_id, switch):
         return f"{entity_id} {action} successfully."
     else:
         print(f"Failed to control {entity_id}. Response:", response.text)
-
 
 # Example usage
 # entity_id = "switch.desk_lamp_socket_1" 

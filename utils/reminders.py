@@ -4,14 +4,16 @@ from difflib import get_close_matches
 
 REMINDERS_DB_FILE = 'reminders.json'
 
+
 def list_unnotified_reminders(display_reminders=False):
     reminders = load_reminders()
     if not reminders:
         return "No reminders found. Please ask the user if they'd like to set a reminder. Don't call this function again when there are no reminders."
     return json.dumps(
-        {"reminders": [rem for rem in reminders if not rem['notified']]}, 
+        {"reminders": [rem for rem in reminders if not rem['notified']]},
         indent=2, default=str
     )
+
 
 def load_reminders():
     if not os.path.exists(REMINDERS_DB_FILE):
@@ -19,11 +21,13 @@ def load_reminders():
     with open(REMINDERS_DB_FILE, 'r') as file:
         return json.load(file)
 
+
 def save_reminders(reminders):
     with open(REMINDERS_DB_FILE, 'w') as file:
         json.dump(reminders, file, indent=2)
         file.flush()
         os.fsync(file.fileno())  # Force write to disk
+
 
 def add_reminder(reminder_text, reminder_time):
     reminders = load_reminders()
@@ -37,6 +41,7 @@ def add_reminder(reminder_text, reminder_time):
     save_reminders(reminders)
     return f"Reminder set for {reminder_time} with text: {reminder_text}"
 
+
 def get_closest_reminder_matches(search_text, threshold=0.5):
     """
     Find reminders with descriptions closely matching the given string.
@@ -48,7 +53,7 @@ def get_closest_reminder_matches(search_text, threshold=0.5):
     reminders = load_reminders()
     descriptions = [r['text'] for r in reminders if not r['notified']]
     matches = get_close_matches(search_text, descriptions, n=3, cutoff=threshold)
-    
+
     # If exact match, return that reminder only
     if search_text in descriptions:
         matching_reminders = [r for r in reminders if r['text'] == search_text]
@@ -59,7 +64,8 @@ def get_closest_reminder_matches(search_text, threshold=0.5):
     matching_reminders = [r for r in reminders if r['text'] in matching_descriptions]
 
     return (matching_reminders, False)
-    
+
+
 def edit_reminder(search_text, new_text="None", new_time="None"):
     reminders = load_reminders()
     matched_reminders, exact_match = get_closest_reminder_matches(search_text)
@@ -81,7 +87,7 @@ def edit_reminder(search_text, new_text="None", new_time="None"):
                 if new_text != "None":
                     rem['text'] = new_text
                 rem['notified'] = False  # Reset notification status
-                
+
         save_reminders(reminders)
         updated_reminders = load_reminders()
         print(f"Updated reminders from file: {updated_reminders}")
@@ -95,8 +101,8 @@ def edit_reminder(search_text, new_text="None", new_time="None"):
         return "Your reminder has been successfully updated to" + new_time + "with text: " + new_text
     else:
         # If multiple matches are found, explain to the user how to specify their choice
-        message = "No exact match found for editing a reminder. "\
-                  "Here are the top hits, please specify by saying, "\
+        message = "No exact match found for editing a reminder. " \
+                  "Here are the top hits, please specify by saying, " \
                   "for example, 'The first one' or 'The second one':\n"
         message += "\n".join(f"{index + 1}: '{reminder['text']}' for {reminder['time']}"
                              for index, reminder in enumerate(matched_reminders))

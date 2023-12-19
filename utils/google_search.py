@@ -7,7 +7,7 @@ load_dotenv()
 # def google_search(query):
 #     api_key = os.getenv('GOOGLE_API_KEY')
 #     cse_id = os.getenv('GOOGLE_CSE_ID')
-    
+
 #     # Build a service object for the API
 #     service = build("customsearch", "v1", developerKey=api_key)
 
@@ -30,6 +30,7 @@ load_dotenv()
 
 import requests
 
+
 def get_ai_snippets_for_query(query):
     headers = {"X-API-Key": '8f39d52a-ada3-477f-a71c-ec70924ffe1a<__>1OLZBeETU8N2v5f4H0usXeqV'}
     params = {"query": query}
@@ -38,5 +39,7 @@ def get_ai_snippets_for_query(query):
         params=params,
         headers=headers,
     ).json()
+
+
 results = get_ai_snippets_for_query("reasons to use AC for long power lines")
 print(results)

@@ -193,26 +193,39 @@ phrases = [
     "illuminate the room", "light up", "brighten the room", "activate the lights", "bring light",
     "let there be light", "shine the light", "enable lighting", "turn lights to full", "light this place up",
     "more light please", "lights to maximum", "open the blinds", "raise the lights", "lights to 100%",
-    
+
     # Turn off the light phrases
     "turn off the light", "lights out", "can you dim the lights", "make it dark", "switch off the lights",
     "extinguish the lights", "darken the room", "turn the lights down", "deactivate the lights", "lights off please",
     "kill the lights", "shut off the lights", "lower the lights", "reduce brightness", "fade the lights",
     "lights to zero", "no more light", "eliminate light", "turn down lights", "lights to minimum",
-    
+
     # Other phrases
-    "what's the weather today", "play some music", "set an alarm for 7 am", "remind me to call John", "how do I get to the nearest gas station",
-    "tell me the news", "set a timer for 20 minutes", "what's on my calendar today", "play the latest podcast", "find a nearby restaurant",
+    "what's the weather today", "play some music", "set an alarm for 7 am", "remind me to call John",
+    "how do I get to the nearest gas station",
+    "tell me the news", "set a timer for 20 minutes", "what's on my calendar today", "play the latest podcast",
+    "find a nearby restaurant",
     "open the window", "start the dishwasher", "is my coffee ready", "schedule a meeting", "call my mom",
     "send a message", "what's the date today", "turn up the heat", "lower the thermostat", "is the door locked",
-    
+
     # Multiple intents
-    "turn on the light and play some music", "lights on and play some jazz", "turn off the light after 20 minutes", "turn off the light in 5 minutes", "play your favorite music and dim the lights",
-    "dim the lights and start the movie", "lights out and set alarm for 6 am", "brighten the room and read the news aloud", "play some music and turn on the light", "edit my reminder for 3 pm, and what's on my calendar?",
-    "switch off the lights then play relaxing sounds", "light up the room and tell me the weather", "turn on the lights and make coffee", "set a reminder for 10 and play music", "tell me my reminders and my calendar with the lights on",
-    "activate lights and play morning playlist", "turn lights to full and open the blinds", "kill the lights and start the dishwasher", "list my reminders and tell me the weather", "what's on my calendar and reminders for 3pm?",
-    "lights to minimum and call my mom", "bring light and set a timer for cooking", "raise the lights and schedule my meeting", "play a song and tell me the weather?", "is it going to rain when my reminder is on?",
-    "deactivate the lights then send a message", "illuminate the room and find a nearby cafe", "lights off please and remind me to call John", "what time are my appointments and will it rain then?", "whats on my calendar and my reminders?",
+    "turn on the light and play some music", "lights on and play some jazz", "turn off the light after 20 minutes",
+    "turn off the light in 5 minutes", "play your favorite music and dim the lights",
+    "dim the lights and start the movie", "lights out and set alarm for 6 am",
+    "brighten the room and read the news aloud", "play some music and turn on the light",
+    "edit my reminder for 3 pm, and what's on my calendar?",
+    "switch off the lights then play relaxing sounds", "light up the room and tell me the weather",
+    "turn on the lights and make coffee", "set a reminder for 10 and play music",
+    "tell me my reminders and my calendar with the lights on",
+    "activate lights and play morning playlist", "turn lights to full and open the blinds",
+    "kill the lights and start the dishwasher", "list my reminders and tell me the weather",
+    "what's on my calendar and reminders for 3pm?",
+    "lights to minimum and call my mom", "bring light and set a timer for cooking",
+    "raise the lights and schedule my meeting", "play a song and tell me the weather?",
+    "is it going to rain when my reminder is on?",
+    "deactivate the lights then send a message", "illuminate the room and find a nearby cafe",
+    "lights off please and remind me to call John", "what time are my appointments and will it rain then?",
+    "whats on my calendar and my reminders?",
 ]
 
 labels = [
@@ -233,7 +246,7 @@ labels = [
     "other", "other", "other", "other", "other",
     "other", "other", "other", "other", "other",
     "other", "other", "other", "other", "other",
-    
+
     # Labels for multiple intents
     "multiple", "multiple", "multiple", "multiple", "multiple",
     "multiple", "multiple", "multiple", "multiple", "multiple",
@@ -268,10 +281,12 @@ import joblib
 classifier = joblib.load('light_intent_classifier.pkl')
 vectorizer = joblib.load('vectorizer.pkl')
 
+
 # Function to predict intent
 def predict_intent(command):
     X = vectorizer.transform([command])
     return classifier.predict(X)[0]
+
 
 # Example usage
 command = "plunge me into darkness"

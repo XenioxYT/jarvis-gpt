@@ -34,7 +34,8 @@ from utils.reminders import add_reminder, edit_reminder, list_unnotified_reminde
 from utils.weather import get_weather_data
 from calendar_utils import check_calendar, add_event_to_calendar
 from utils.home_assistant import toggle_entity
-from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device, play_spotify, pause_spotify
+from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device, play_spotify, \
+    pause_spotify
 from utils.store_conversation import store_conversation
 from pveagle_speaker_identification import enroll_user, determine_speaker
 from noise_reduction import reduce_noise_and_normalize
@@ -58,6 +59,7 @@ thinking_sound_stop_event = threading.Event()
 
 current_playback = None
 
+
 def play_sound(sound_file, loop=False):
     global current_playback
 
@@ -78,6 +80,7 @@ def play_sound(sound_file, loop=False):
     # Start a new thread for the next sound to play
     threading.Thread(target=play, daemon=True).start()
 
+
 def stop_thinking_sound():
     global current_playback
 
@@ -87,13 +90,13 @@ def stop_thinking_sound():
     # Stop the current playback if it exists
     if current_playback:
         current_playback.stop()
-    
+
     # Reset the event for the next playback loop
     thinking_sound_stop_event.clear()
 
     # Clear the current playback reference
     current_playback = None
-    
+
 
 def get_location():
     api_token = os.getenv('IPINFO_TOKEN')
@@ -104,12 +107,13 @@ def get_location():
     data = response.json()
     return data.get('city', 'Unknown')
 
+
 city = get_location()
 
 messages = [
     {
         "role": "system",
-        "content": "You are Jarvis, a voice-based personal assistant currently located in " + city + " and based off the GPT-4 AI model. You are speaking to him now. "
+        "content": "You are Jarvis, a voice-based personal assistant currently located in " + city + " and based off the GPT-4 AI model. You are speaking to the user now. "
         "The user that activated you is provded to you at the start of each message ('At [timestamp] [user] said:'), along with the date at time. Refer to them by their name. If the user is 'Unknown', then say you don't recognize them, however continue with the action if it is non-personal. "
         "ONLY perform actions for verified users. DO NOT perform reminders or calendar management actions for 'Unknown' users. Some users require specific actions. For example, be sure to select the correct calendar/reminders/smart home control for the specific user mentioned. "
         "You can enroll users using the function. However, BEFORE using this function you MUST give the user a sentence to say, AND ask their name. For example: 'Tell me the weather... [name]'. Insert this name into the correct field. This is to train the model to recognize the user's voice. "
@@ -124,7 +128,8 @@ messages = [
         "ALWAYS check the calendar, weather, etc. before giving a response that includes this. Do NOT hallucinate or make up events without checking. "
         "The date and time is provided at the beginning of the message. This indicates the current date and time, and is used to give you a reference point. "
         "Use this as well to give a sense of time passing and time-contextual responses. "
-        "The current date and time is: " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "The current date and time is: " + datetime.datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S")
     },
 ]
 
@@ -154,32 +159,39 @@ porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
 koala = pvkoala.create(access_key=pv_access_key)
 cheetah = pvcheetah.create(access_key=pv_access_key, enable_automatic_punctuation=True)
 
+
 def check_reminders(cursor=None, db_conn=None):
     current_time = datetime.datetime.now().replace(second=0, microsecond=0)
     reminders = load_reminders()
     # print(reminders)
-    
-    due_reminders = [r for r in reminders if not r['notified'] and datetime.datetime.fromisoformat(r['time']) == current_time]
-    
+
+    due_reminders = [r for r in reminders if
+                     not r['notified'] and datetime.datetime.fromisoformat(r['time']) == current_time]
+
     for reminder in due_reminders:
-        message = f"A reminder has been triggered for {reminder['time']} with text: {reminder['text']}. Please deliver this reminder to the user."
-        response = get_chatgpt_response(text=message, cursor=cursor, db_conn=db_conn, function=True, function_name="speak_reminder")
+        message = (f"A reminder has been triggered for {reminder['time']} with text: {reminder['text']}. Please "
+                   f"deliver this reminder to the user.")
+        response = get_chatgpt_response(text=message, cursor=cursor, db_conn=db_conn, function=True,
+                                        function_name="speak_reminder")
         text_to_speech(response)
-        
+
         reminder['notified'] = True  # Mark as notified
 
     save_reminders(reminders)  # Update the reminders in the database
-    
+
+
 def reminder_daemon():
-    while True:    
+    while True:
         db_conn = sqlite3.connect('conversations.db')
         c = db_conn.cursor()
         check_reminders(cursor=c, db_conn=db_conn)
         db_conn.close()
         time.sleep(30)  # Wait for one minute before checking again
 
+
 # Initialize PyAudio
 pa = pyaudio.PyAudio()
+
 
 def enroll_user_handler(name):
     # Generate a random number
@@ -192,10 +204,11 @@ def enroll_user_handler(name):
     # Copy and move the file
     destination = f"./user_dataset_temp/{name}/{random_number}.wav"
     shutil.copy("./temp_cleaned_normalised.wav", destination)
-    
+
     audio_files = [f'./user_dataset_temp/{name}/{file}' for file in os.listdir(f'./user_dataset_temp/{name}')]
 
     return enroll_user(pv_access_key, audio_files, f"./user_models/{name}.pv")
+
 
 def determine_user_handler(queue):
     # Check if the directory is empty
@@ -206,9 +219,11 @@ def determine_user_handler(queue):
         return "Unknown"
     input_profile_paths = [f'./user_models/{name}' for name in os.listdir('./user_models/')]
     audio_path = './temp_cleaned_normalised.wav'
-    result = determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths, test_audio_path=audio_path)
+    result = determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths,
+                               test_audio_path=audio_path)
     queue.put(result)
     return "Unknown"
+
 
 # Function to save the recorded audio to a WAV file
 def save_audio(frames, filename='temp.wav'):
@@ -217,6 +232,7 @@ def save_audio(frames, filename='temp.wav'):
         wf.setsampwidth(pa.get_sample_size(pyaudio.paInt16))
         wf.setframerate(16000)
         wf.writeframes(b''.join(frames))
+
 
 # Function to transcribe speech to text using Whisper
 def transcribe(queue, filename='temp.wav'):
@@ -234,6 +250,7 @@ def transcribe(queue, filename='temp.wav'):
     result = pipe(filename)
     transciption = result["text"]
     queue.put(transciption)
+
 
 def split_first_sentence(text):
     # Look for a period, exclamation mark, or question mark that might indicate the end of a sentence
@@ -255,9 +272,11 @@ def split_first_sentence(text):
     else:
         return text, ''
 
+
 def text_to_speech_thread(text):
     # This function will run in a separate thread
     text_to_speech(text)
+
 
 # Function to get response from ChatGPT, making any necessary tool calls
 def get_chatgpt_response(text, function=False, function_name=None, cursor=None, db_conn=None, speaker="Unknown"):
@@ -265,12 +284,12 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
         messages.append(
             {
                 "role": "function",
-                "name": function_name, 
+                "name": function_name,
                 "content": text,
             }
         )
     timestamp = datetime.datetime.now().strftime("%H:%M on %a %d %B %Y")
-    
+
     messages.append({"role": "user", "content": f"At {timestamp} {speaker} said: {text}"})
     if cursor:
         store_conversation(1, messages, cursor, db_conn)
@@ -299,14 +318,12 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             completion += chunk.choices[0].delta.content
             # print(completion)
             full_completion += chunk.choices[0].delta.content
-            
+
             if waiting_for_number and completion[0].isdigit():
                 # Append the number to the previously processed sentence
                 string1 += completion
                 waiting_for_number = False
-                # Continue with text-to-speech and rest of the processing
-                # ...
-    
+
             elif not first_sentence_processed and any(punctuation in completion for punctuation in ["!", ".", "?"]):
                 if not re.search(r'\d+\.\d+', completion):
                     string1, rest = split_first_sentence(completion)
@@ -321,12 +338,12 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
                             tts_thread.start()
                             completion = rest  # Reset completion to contain only the remaining text
                             first_sentence_processed = True
-        
+
         if chunk.choices[0].delta.tool_calls:
             tcchunklist = delta.tool_calls
             for tcchunk in tcchunklist:
                 if len(tool_calls) <= tcchunk.index:
-                    tool_calls.append({"id": "", "type": "function", "function": { "name": "", "arguments": "" } })
+                    tool_calls.append({"id": "", "type": "function", "function": {"name": "", "arguments": ""}})
                 tc = tool_calls[tcchunk.index]
 
                 if tcchunk.id:
@@ -353,7 +370,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "play_song_on_spotify": search_spotify_song,
             "enroll_user": enroll_user_handler,
         }
-        
+
         if len(tool_calls) > 1:
             multiple_tool_calls = True
         else:
@@ -362,13 +379,9 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
         for tool_call in tool_calls:
             function_name = tool_call['function']['name']
             function_args = json.loads(tool_call['function']['arguments'])
-            
-            # messages.append(
-            #     {
-            #         "role": "assistant",
-            #         "content": "You called a function with the following parameters" + function_name + " " + str(function_args),
-            #     }
-            # )
+
+            # messages.append( { "role": "assistant", "content": "You called a function with the following
+            # parameters" + function_name + " " + str(function_args), } )
             if cursor:
                 store_conversation(1, messages, cursor, db_conn)
             else:
@@ -376,36 +389,42 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
 
             print(f"Tool call: {tool_call}")
             print(f"Function name: {function_name}", f"Function args: {function_args}")
-            
+
             if multiple_tool_calls:
-                tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Accessing multiple tools...",))
+                tts_thread_function = threading.Thread(target=text_to_speech_thread,
+                                                       args=("Accessing multiple tools...",))
                 tts_thread_function.start()
-                
+
             else:
                 if function_name == "play_song_on_spotify":
-                    tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Connecting to your speakers...",))
+                    tts_thread_function = threading.Thread(target=text_to_speech_thread,
+                                                           args=("Connecting to your speakers...",))
                     tts_thread_function.start()
                 elif function_name == "set_reminder":
-                    tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Accessing reminders...",))
+                    tts_thread_function = threading.Thread(target=text_to_speech_thread,
+                                                           args=("Accessing reminders...",))
                     tts_thread_function.start()
 
                 elif function_name == "add_event_to_calendar":
                     event_name = function_args['title']
-                    tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Adding " + event_name + " to your calendar...",))
+                    tts_thread_function = threading.Thread(target=text_to_speech_thread,
+                                                           args=("Adding " + event_name + " to your calendar...",))
                     tts_thread_function.start()
 
                 elif function_name == "get_weather_data":
-                    tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Getting live weather data...",))
+                    tts_thread_function = threading.Thread(target=text_to_speech_thread,
+                                                           args=("Getting live weather data...",))
                     tts_thread_function.start()
 
                 else:
-                    tts_thread_function = threading.Thread(target=text_to_speech_thread, args=("Connecting to the internet",))
+                    tts_thread_function = threading.Thread(target=text_to_speech_thread,
+                                                           args=("Connecting to the internet",))
                     tts_thread_function.start()
 
             if function_name in available_functions:
                 function_response = available_functions[function_name](**function_args)
                 print(function_response)
-                
+
                 # Send the function response back to the model
                 messages.append(
                     {
@@ -441,7 +460,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
                     completion += chunk.choices[0].delta.content
                     # print(completion)
                     full_completion_2 += chunk.choices[0].delta.content
-                    
+
                     if tts_thread_function.is_alive():
                         tts_thread_function.join()
 
@@ -452,7 +471,8 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
                         # Continue with text-to-speech and rest of the processing
                         # ...
 
-                    elif not first_sentence_processed_second_response and any(punctuation in completion for punctuation in ["!", ".", "?"]):
+                    elif not first_sentence_processed_second_response and any(
+                            punctuation in completion for punctuation in ["!", ".", "?"]):
                         if not re.search(r'\d+\.\d+', completion):
                             string1, rest = split_first_sentence(completion)
 
@@ -502,6 +522,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             pass
         return completion
 
+
 # Function to convert text to speech using Google Cloud TTS
 def text_to_speech(text):
     synthesis_input = texttospeech.SynthesisInput(text=text)
@@ -549,7 +570,7 @@ def text_to_speech(text):
     def callback(in_data, frame_count, time_info, status):
         data = audio_buffer.read(frame_count * 2)  # 2 bytes per sample for LINEAR16
         return (data, pyaudio.paContinue)
-    
+
     # Initialize PyAudio and open a stream for playback
     p = pyaudio.PyAudio()
     stream = p.open(format=p.get_format_from_width(2),
@@ -557,7 +578,7 @@ def text_to_speech(text):
                     rate=24000,  # Ensure this matches the sample rate from the TTS response
                     output=True,
                     stream_callback=callback)
-    
+
     # Start the playback stream and wait for it to finish
     stream.start_stream()
     while stream.is_active():
@@ -567,6 +588,7 @@ def text_to_speech(text):
     audio_buffer.close()
     p.terminate()
 
+
 def main():
     audio_stream = pa.open(
         rate=16000,
@@ -575,7 +597,7 @@ def main():
         input=True,
         frames_per_buffer=porcupine.frame_length
     )
-    
+
     play_sound(SUCCESS_SOUND)
 
     vad = webrtcvad.Vad(3)
@@ -630,14 +652,14 @@ def main():
 
                     # Accumulate the suppressed frames
                     accumulated_frames.append(vad_buffer)
-            
+
                     if num_silent_frames > 60:  # Stop capturing after a short period of silence
                         print("Done capturing.")
                         play_sound(STOPPED_LISTENING_SOUND)
                         if spotify_was_playing:
                             toggle_spotify_playback(force_play=True)
                         break
-                
+
             # Save the suppressed audio
             save_audio(accumulated_frames)
             reduce_noise_and_normalize('./temp.wav')
@@ -669,12 +691,12 @@ def main():
             text_to_speech(response)
             if spotify_was_playing:
                 toggle_spotify_playback(force_play=True)
-                
 
     audio_stream.close()
     pa.terminate()
     porcupine.delete()
     koala.delete()
+
 
 reminder_daemon_thread = threading.Thread(target=reminder_daemon, daemon=True)
 reminder_daemon_thread.start()

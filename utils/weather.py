@@ -9,6 +9,7 @@ load_dotenv()
 
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
+
 def get_weather_data(location, date=None):
     location = location.split(",")[0]  # Assuming the country is not needed in the API call
 
@@ -58,7 +59,7 @@ def get_weather_data(location, date=None):
                     if weather_date == single_date:
                         response_data['data'] = weather_data
                         break
-            
+
         else:
             # No date specified, default to today's weather
             response_data['date'] = datetime.datetime.utcfromtimestamp(response['current']['dt']).strftime('%Y-%m-%d')

@@ -9,24 +9,29 @@ CREATE TABLE IF NOT EXISTS conversations
     conversation TEXT)
 """)
 
+
 def count_tokens_in_conversation(conversation):
     return sum(count_tokens(m["content"]) for m in conversation)
 
+
 encoding = tiktoken.encoding_for_model("gpt-4")
+
 
 def count_tokens(text):
     return len(encoding.encode(text))
+
 
 def ensure_system_message_on_top(conversation):
     """Ensure the system message is the first message in the conversation."""
     if conversation and conversation[0]["role"] != "system":
         # Find the system message
         system_msg_idx = next((idx for idx, m in enumerate(conversation) if m["role"] == "system"), None)
-        
+
         # If a system message is found and it's not the first message, move it to the top
         if system_msg_idx is not None:
             system_message = conversation.pop(system_msg_idx)
             conversation.insert(0, system_message)
+
 
 def trim_conversation_to_fit_limit(conversation, token_limit, conversation_id):
     """Trim the earliest non-system messages until the conversation is within the token limit."""
@@ -39,13 +44,13 @@ def trim_conversation_to_fit_limit(conversation, token_limit, conversation_id):
             # If for some reason there are multiple system messages or the order is not as expected
             ensure_system_message_on_top(conversation)
             conversation.pop(2)
-        
+
         store_conversation(conversation_id, conversation)
 
+
 def store_conversation(conversation_id, conversation, cursor=None, db_conn=None):
-    
     token_limit = 7000
-    
+
     # Ensure the system message is always the first message in the conversation
     ensure_system_message_on_top(conversation)
 
@@ -55,7 +60,7 @@ def store_conversation(conversation_id, conversation, cursor=None, db_conn=None)
     # Now, store the conversation in the database
 
     if cursor is None:
-        db_conn= sqlite3.connect('conversations.db')
+        db_conn = sqlite3.connect('conversations.db')
         cursor = db_conn.cursor()
     else:
         cursor = cursor
@@ -65,4 +70,3 @@ def store_conversation(conversation_id, conversation, cursor=None, db_conn=None)
     values = (conversation_id, json.dumps(conversation))
     cursor.execute("REPLACE INTO conversations VALUES (?, ?)", values)
     db_conn.commit()
-    
