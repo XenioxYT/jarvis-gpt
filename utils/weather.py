@@ -1,5 +1,5 @@
 import requests
-import datetime
+from datetime import datetime
 import json
 from dateutil import parser as date_parser
 import os
@@ -9,12 +9,6 @@ load_dotenv()
 
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
-
-from datetime import datetime
-from dateutil import parser as date_parser
-
-from datetime import datetime
-from dateutil import parser as date_parser
 
 def get_weather_data(location, date=None):
     location = location.split(",")[0]  # Extracting just the city name
