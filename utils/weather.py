@@ -13,6 +13,9 @@ OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 from datetime import datetime
 from dateutil import parser as date_parser
 
+from datetime import datetime
+from dateutil import parser as date_parser
+
 def get_weather_data(location, date=None):
     location = location.split(",")[0]  # Extracting just the city name
 
@@ -34,12 +37,12 @@ def get_weather_data(location, date=None):
                 # Handling date range
                 start_date_str, end_date_str = date.split(' - ')
                 start_date, end_date = date_parser.parse(start_date_str.strip()).date(), date_parser.parse(end_date_str.strip()).date()
-                response_data['date'] = f"{start_date} - {end_date}"
+                response_data['date'] = f"{start_date.strftime('%Y-%m-%d')} - {end_date.strftime('%Y-%m-%d')}"
                 response_data['data'] = response['daily']  # Assuming full range is required
             else:
                 # Handling single date
                 single_date = date_parser.parse(date.strip()).date()
-                response_data['date'] = single_date
+                response_data['date'] = single_date.strftime('%Y-%m-%d')
                 for weather_data in response['daily']:
                     if datetime.utcfromtimestamp(weather_data['dt']).date() == single_date:
                         response_data['data'] = weather_data
@@ -47,7 +50,7 @@ def get_weather_data(location, date=None):
         else:
             # Default to current weather data
             response_data.update({
-                'date': current_date,
+                'date': current_date.strftime('%Y-%m-%d'),
                 'data': {
                     'current': response['current'],
                     'daily_forecast': response['daily'][0]  # Today's forecast
