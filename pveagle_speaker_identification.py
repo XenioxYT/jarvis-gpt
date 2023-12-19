@@ -11,49 +11,33 @@ FEEDBACK_TO_DESCRIPTIVE_MSG = {
     pveagle.EagleProfilerEnrollFeedback.QUALITY_ISSUE: 'Low audio quality due to bad microphone or environment'
 }
 
+
 def read_file(file_name, sample_rate):
     with wave.open(file_name, mode="rb") as wav_file:
         channels = wav_file.getnchannels()
         sample_width = wav_file.getsampwidth()
         num_frames = wav_file.getnframes()
         if wav_file.getframerate() != sample_rate:
-            raise ValueError("Audio file should have a sample rate of %d. got %d" % (sample_rate, wav_file.getframerate()))
+            raise ValueError(
+                "Audio file should have a sample rate of %d. got %d" % (sample_rate, wav_file.getframerate()))
         if sample_width != 2:
             raise ValueError("Audio file should be 16-bit. got %d" % sample_width)
         if channels != 1:
             raise ValueError("Eagle processes single-channel audio but stereo file is provided.")
-            
+
         samples = wav_file.readframes(num_frames)
     frames = struct.unpack('h' * num_frames, samples)
     return frames
 
+
 def determine_speaker(access_key, input_profile_paths, test_audio_path):
-    # Read the audio file
-    def read_file(file_name, sample_rate):
-        with wave.open(file_name, mode="rb") as wav_file:
-            channels = wav_file.getnchannels()
-            sample_width = wav_file.getsampwidth()
-            num_frames = wav_file.getnframes()
-
-            if wav_file.getframerate() != sample_rate:
-                raise ValueError("Audio file should have a sample rate of %d. got %d" % (sample_rate, wav_file.getframerate()))
-            if sample_width != 2:
-                raise ValueError("Audio file should be 16-bit. got %d" % sample_width)
-            if channels != 1:
-                raise ValueError("Eagle processes single-channel audio but stereo file is provided.")
-                
-            samples = wav_file.readframes(num_frames)
-
-        frames = struct.unpack('h' * num_frames, samples)
-        return frames
-    
     # Load speaker profiles
     speaker_labels = [os.path.splitext(os.path.basename(path))[0] for path in input_profile_paths]
     speaker_profiles = []
     for input_profile_path in input_profile_paths:
         with open(input_profile_path, 'rb') as f:
             speaker_profiles.append(pveagle.EagleProfile.from_bytes(f.read()))
-    
+
     # Create the Eagle recognizer
     eagle = pveagle.create_recognizer(
         access_key=access_key,
@@ -75,13 +59,14 @@ def determine_speaker(access_key, input_profile_paths, test_audio_path):
     average_scores = [sum(x) / len(x) for x in zip(*speakers_scores)]
     max_score_index = average_scores.index(max(average_scores))
     selected_speaker = speaker_labels[max_score_index]
-    
+
     print(average_scores)
-    
+
     if average_scores[max_score_index] < 0.1:
         selected_speaker = "Unknown"
 
     return selected_speaker
+
 
 # Example usage:
 # Replace these with the appropriate paths and access key.
@@ -101,7 +86,7 @@ def enroll_user(access_key, enroll_audio_paths, output_profile_path):
 
     # Initialize the Eagle profile.
     eagle_profiler = pveagle.create_profiler(
-        access_key=access_key,)
+        access_key=access_key, )
 
     try:
         # Enroll the speaker using the provided audio files.
@@ -125,7 +110,9 @@ def enroll_user(access_key, enroll_audio_paths, output_profile_path):
         else:
             print('Failed to create speaker profile. Insufficient enrollment percentage: %.2f%%. '
                   'Please add more audio files for enrollment.' % enroll_percentage)
-            return "Insufficient enrollment percentage: {}.".format(enroll_percentage) + "Entrollment feedback: " + str(FEEDBACK_TO_DESCRIPTIVE_MSG[enrollment_feedback]) + " Please get the user to say another sentence. Keep going until 100 percent is reached. "
+            return "Insufficient enrollment percentage: {}.".format(enroll_percentage) + "Entrollment feedback: " + str(
+                FEEDBACK_TO_DESCRIPTIVE_MSG[
+                    enrollment_feedback]) + " Please get the user to say another sentence. Keep going until 100 percent is reached. "
     finally:
         eagle_profiler.delete()
 
