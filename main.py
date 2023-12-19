@@ -19,12 +19,14 @@ import shutil
 import random
 from dotenv import load_dotenv
 from openai import OpenAI
+import torch
 from google.cloud import texttospeech
 import pyttsx3
 import whisper
 import io
 import datetime
 import simpleaudio as sa
+from queue import Queue
 
 # imports for the tools
 from utils.tools import tools
@@ -33,20 +35,18 @@ from utils.weather import get_weather_data
 from calendar_utils import check_calendar, add_event_to_calendar
 from utils.home_assistant import toggle_entity
 from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device, play_spotify, pause_spotify
-from classification import is_english_text
 from utils.store_conversation import store_conversation
 from pveagle_speaker_identification import enroll_user, determine_speaker
-
-import torch
+from noise_reduction import reduce_noise_and_normalize
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
-model_id = "openai/whisper-tiny"
+model_id = "distil-whisper/distil-medium.en"
 
 model = AutoModelForSpeechSeq2Seq.from_pretrained(
-    model_id, torch_dtype=torch_dtype, use_safetensors=True
+    model_id, torch_dtype=torch_dtype, use_safetensors=True, low_cpu_mem_usage=True
 )
 model.to(device)
 
@@ -110,9 +110,10 @@ messages = [
     {
         "role": "system",
         "content": "You are Jarvis, a voice-based personal assistant currently located in " + city + " and based off the GPT-4 AI model. You are speaking to him now. "
-        "The user that activated you is provded to you at the start of each message ('At [timestamp] [user] said:'), along with the date at time. Refer to them by their name. If the user is 'Unknown', then say you don't recognize the speaker. ALWAYS check the user before performing any actions. "
-        "ONLY perform actions for verified users. DO NOT perform personal actions for 'Unknown' users, like reminders or calendar management. Some users require specific actions. For example, be sure to select the correct calendar/reminders/smart home control for the specific user mentioned. "
-        "You can enroll users using the function. However, BEFORE using this function you MUST give the user a sentence to say, AND ask their name. For example: 'The quick brown... [name]'. Insert this name into the correct field. This is to train the model to recognize the user's voice. "
+        "The user that activated you is provded to you at the start of each message ('At [timestamp] [user] said:'), along with the date at time. Refer to them by their name. If the user is 'Unknown', then say you don't recognize them, however continue with the action if it is non-personal. "
+        "ONLY perform actions for verified users. DO NOT perform reminders or calendar management actions for 'Unknown' users. Some users require specific actions. For example, be sure to select the correct calendar/reminders/smart home control for the specific user mentioned. "
+        "You can enroll users using the function. However, BEFORE using this function you MUST give the user a sentence to say, AND ask their name. For example: 'Tell me the weather... [name]'. Insert this name into the correct field. This is to train the model to recognize the user's voice. "
+        "Make the sentence you give one that they will ask you, for example 'Tell me the weather in'" + city + "'. It doesn't have to match exactly, but it should be similar. "
         "Keep repeating this process (sentence, function), until the user's voice is recognized. "
         "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
         "You are equipped with a variety of tools, which you can use to perform various tasks. For example, you can play music on spotify for the user. Do not mention you are a text-based assistant. "
@@ -183,55 +184,31 @@ pa = pyaudio.PyAudio()
 def enroll_user_handler(name):
     # Generate a random number
     random_number = random.randint(1, 1000)
+    reduce_noise_and_normalize('./temp.wav')
 
     # Create the destination directory if it doesn't exist
     os.makedirs(f'./user_dataset_temp/{name}', exist_ok=True)
 
     # Copy and move the file
     destination = f"./user_dataset_temp/{name}/{random_number}.wav"
-    shutil.copy("./temp.wav", destination)
+    shutil.copy("./temp_cleaned_normalised.wav", destination)
     
     audio_files = [f'./user_dataset_temp/{name}/{file}' for file in os.listdir(f'./user_dataset_temp/{name}')]
 
     return enroll_user(pv_access_key, audio_files, f"./user_models/{name}.pv")
 
-def determine_user_handler():
+def determine_user_handler(queue):
     # Check if the directory is empty
     if not os.listdir('./user_models/'):
         print("The directory is empty")
-        return "Unknown"  # or handle the error in another appropriate way
+        result = "Unknown"
+        queue.put(result)
+        return "Unknown"
     input_profile_paths = [f'./user_models/{name}' for name in os.listdir('./user_models/')]
-    audio_path = './temp.wav'
-    return determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths, test_audio_path=audio_path)
-
-# Function to continuously capture audio until user stops speaking
-def capture_speech(vad, audio_stream):
-    print("Listening for your command...")
-    frames = []
-    num_silent_frames = 0
-
-    while True:
-        pcm = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
-        pcm_unpacked = struct.unpack_from("h" * porcupine.frame_length, pcm)  # ensure little-endian
-
-        # Convert frames to 10-ms chunks as required by webrtcvad
-        ms_frame = b''.join([struct.pack('h', sample) for sample in pcm_unpacked])
-
-        is_speech = vad.is_speech(ms_frame, 16000)
-
-        if is_speech:
-            num_silent_frames = 0
-        else:
-            num_silent_frames += 1
-
-        frames.append(pcm)
-
-        # Stop capturing after a short period of silence
-        if num_silent_frames > 30:
-            print("Done capturing.")
-            break
-
-    return frames
+    audio_path = './temp_cleaned_normalised.wav'
+    result = determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths, test_audio_path=audio_path)
+    queue.put(result)
+    return "Unknown"
 
 # Function to save the recorded audio to a WAV file
 def save_audio(frames, filename='temp.wav'):
@@ -242,7 +219,7 @@ def save_audio(frames, filename='temp.wav'):
         wf.writeframes(b''.join(frames))
 
 # Function to transcribe speech to text using Whisper
-def transcribe(filename='temp.wav'):
+def transcribe(queue, filename='temp.wav'):
     # model = whisper.load_model("base")  # this is done in the head of the file
     pipe = pipeline(
         "automatic-speech-recognition",
@@ -254,10 +231,9 @@ def transcribe(filename='temp.wav'):
         torch_dtype=torch_dtype,
         device=device,
     )
-    result = pipe(filename, generate_kwargs={"language": "english"})
-    return result["text"]
-
-import re
+    result = pipe(filename)
+    transciption = result["text"]
+    queue.put(transciption)
 
 def split_first_sentence(text):
     # Look for a period, exclamation mark, or question mark that might indicate the end of a sentence
@@ -590,55 +566,6 @@ def text_to_speech(text):
     stream.close()
     audio_buffer.close()
     p.terminate()
-    
-def handle_follow_ups(audio_stream, vad, response):
-    # This function will handle follow-up interactions repeatedly
-    while True:
-        play_sound(LISTENING_SOUND)
-        time.sleep(1)
-        print("Listening for a follow-up command...")
-        accumulated_frames = []
-        num_silent_frames = 0
-        vad_frame_len = int(0.02 * 16000)
-
-        while num_silent_frames < 50:  # Adjust the threshold as needed
-            pcm = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
-            pcm_unpacked = struct.unpack_from("h" * porcupine.frame_length, pcm)
-            vad_buffer = b''.join(struct.pack('h', frame) for frame in pcm_unpacked)
-            is_speech = vad.is_speech(vad_buffer[:2 * vad_frame_len], 16000)
-
-            if is_speech:
-                num_silent_frames = 0
-                accumulated_frames.append(vad_buffer)
-            else:
-                num_silent_frames += 1
-
-            if len(accumulated_frames) >= 16000 * 15 / (2 * vad_frame_len):  # Stop after 15 seconds of recording
-                break
-
-        if accumulated_frames:
-            save_audio(accumulated_frames)
-            play_sound(STOPPED_LISTENING_SOUND)
-            print("Processing follow-up audio...")
-            follow_up_command = transcribe()
-            
-            if not follow_up_command:
-                print("No follow-up command detected, stopping the follow-up loop.")
-                break  # Exit the follow-up loop if no command is detected or a stop condition is met
-
-            print(f"Follow-up command: {follow_up_command}")
-
-            # Now we check if the follow-up command is discernible English text
-            # Assuming we have a function 'is_english_text' to check the transcribed text
-            if is_english_text(follow_up_command, response):
-                # Process the follow-up command as needed, similar to the initial command
-                response = get_chatgpt_response(follow_up_command)
-                text_to_speech(response)
-            else:
-                print("The follow-up command does not appear to be valid English.")
-        else:
-            print("No speech detected, stopping the follow-up loop.")
-            break  # Exit the follow-up loop if no speech is detected
 
 def main():
     audio_stream = pa.open(
@@ -670,13 +597,14 @@ def main():
             #     spotify_was_playing = True
             # toggle_spotify_playback()
             play_sound(LISTENING_SOUND)
+            time.sleep(0.25)
             accumulated_frames = []
             num_silent_frames = 0
             vad_frame_accumulator = []
             vad_frame_len = int(0.02 * 16000)  # 20 ms
 
             while True:
-                pcm = audio_stream.read(koala.frame_length, exception_on_overflow=False)
+                pcm = audio_stream.read(vad_frame_len, exception_on_overflow=False)
                 pcm_unpacked = struct.unpack_from("h" * koala.frame_length, pcm)
 
                 pcm_boosted = [int(sample * volume_boost_factor) for sample in pcm_unpacked]
@@ -704,8 +632,6 @@ def main():
                     accumulated_frames.append(vad_buffer)
             
                     if num_silent_frames > 60:  # Stop capturing after a short period of silence
-                        final_transcript = cheetah.flush()
-                        print(f"Final Transcript: {final_transcript}")
                         print("Done capturing.")
                         play_sound(STOPPED_LISTENING_SOUND)
                         if spotify_was_playing:
@@ -714,10 +640,29 @@ def main():
                 
             # Save the suppressed audio
             save_audio(accumulated_frames)
+            reduce_noise_and_normalize('./temp.wav')
             print("Processing audio...")
-            command = transcribe()
-            print(f"You said: {command}")
-            user = determine_user_handler()
+            # Create a queue for each thread to put their result into
+            transcribe_queue = Queue()
+            user_handler_queue = Queue()
+
+            # Initialize and start threads with the queues as arguments
+            transcript_thread = threading.Thread(target=transcribe, args=(transcribe_queue,))
+            user_handler_thread = threading.Thread(target=determine_user_handler, args=(user_handler_queue,))
+            transcript_thread.start()
+            user_handler_thread.start()
+
+            # Wait for threads to finish
+            transcript_thread.join()
+            print("transcription thread finished!")
+            user_handler_thread.join()
+            print("determine user thread finished!")
+
+            # Retrieve results from the queues
+            command = transcribe_queue.get()
+            print(command)
+            user = user_handler_queue.get()
+            print(user)
             response = get_chatgpt_response(command, speaker=str(user))
             if spotify_was_playing:
                 toggle_spotify_playback()
