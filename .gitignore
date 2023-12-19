@@ -37,3 +37,9 @@ user_dataset_temp/Tom/59.wav
 temp_cleaned_normalised.wav
 temp_cleaned.wav
 __pycache__/classification.cpython-310.pyc
+/.idea/.gitignore
+/.idea/jarvis-gpt.iml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/vcs.xml
