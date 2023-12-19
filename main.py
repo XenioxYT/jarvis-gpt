@@ -67,22 +67,16 @@ current_playback = None
 
 def play_sound(sound_file, loop=False):
     global current_playback
-
+    # Create wave_obj and play_obj once outside the loop
+    wave_obj = sa.WaveObject.from_wave_file(sound_file)
+    play_obj = wave_obj.play()
     def play():
         global current_playback
         while not thinking_sound_stop_event.is_set():
-            wave_obj = sa.WaveObject.from_wave_file(sound_file)
-            play_obj = wave_obj.play()
             current_playback = play_obj
             play_obj.wait_done()
             if not loop or thinking_sound_stop_event.is_set():
                 break
-
-    # If there's already a sound playing, stop it
-    # if current_playback:
-    #     current_playback.stop()
-
-    # Start a new thread for the next sound to play
     threading.Thread(target=play, daemon=True).start()
 
 
@@ -161,6 +155,18 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 REMINDERS_DB_FILE = 'reminders.json'
 
 porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
+
+pipeline_model = pipeline(
+    "automatic-speech-recognition",
+    model=model,
+    tokenizer=processor.tokenizer,
+    feature_extractor=processor.feature_extractor,
+    max_new_tokens=128,
+    return_timestamps=False,
+    torch_dtype=torch_dtype,
+    device=device,
+)
+
 # koala = pvkoala.create(access_key=pv_access_key)
 # cheetah = pvcheetah.create(access_key=pv_access_key, enable_automatic_punctuation=True)
 
@@ -239,22 +245,22 @@ def save_audio(frames, filename='temp.wav'):
         wf.writeframes(b''.join(frames))
 
 
-# Function to transcribe speech to text using Whisper
-def transcribe(queue, filename='temp.wav'):
-    # model = whisper.load_model("base")  # this is done in the head of the file
-    pipe = pipeline(
-        "automatic-speech-recognition",
-        model=model,
-        tokenizer=processor.tokenizer,
-        feature_extractor=processor.feature_extractor,
-        max_new_tokens=128,
-        return_timestamps=False,
-        torch_dtype=torch_dtype,
-        device=device,
-    )
-    result = pipe(filename)
+def transcribe(queue, filename='temp.wav', pipeline_model=pipeline_model):
+    if pipeline_model is None:
+        pipeline_model = pipeline(
+            "automatic-speech-recognition",
+            model=model,
+            tokenizer=processor.tokenizer,
+            feature_extractor=processor.feature_extractor,
+            max_new_tokens=128,
+            return_timestamps=False,
+            torch_dtype=torch_dtype,
+            device=device,
+        )
+    result = pipeline_model(filename)
     transciption = result["text"]
     queue.put(transciption)
+
 
 
 def split_first_sentence(text):
@@ -612,8 +618,9 @@ def main():
 
     while True:
         pcm = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
-        pcm_unpacked = struct.unpack_from("h" * porcupine.frame_length, pcm)
-        pcm_boosted = [int(sample * volume_boost_factor) for sample in pcm_unpacked]
+        pcm_unpacked = np.frombuffer(pcm, dtype='h', count=porcupine.frame_length)
+
+        pcm_boosted = np.multiply(pcm_unpacked, volume_boost_factor).astype(int)
         # pcm_suppressed = koala.process(pcm_unpacked)
         keyword_index = porcupine.process(pcm_boosted)
 
@@ -632,19 +639,19 @@ def main():
 
             while True:
                 pcm = audio_stream.read(vad_frame_len, exception_on_overflow=False)
-                pcm_unpacked = struct.unpack_from("h" * vad_frame_len, pcm)
+                pcm_unpacked = np.frombuffer(pcm, dtype='h', count=vad_frame_len)
 
-                pcm_boosted = [int(sample * volume_boost_factor) for sample in pcm_unpacked]
+                pcm_boosted = np.multiply(pcm_unpacked, volume_boost_factor).astype(int)
 
                 # Apply Koala noise suppression
                 # pcm_suppressed = koala.process(pcm_boosted)
 
                 # Accumulate the suppressed frames for a full VAD frame
-                vad_frame_accumulator.extend(pcm_boosted)
+                vad_frame_accumulator = np.append(vad_frame_accumulator, pcm_boosted)
                 # Once enough samples are accumulated for a 20 ms frame, process with VAD
                 if len(vad_frame_accumulator) >= vad_frame_len:
                     vad_frame = vad_frame_accumulator[:vad_frame_len]
-                    vad_buffer = b''.join(struct.pack('h', sample) for sample in vad_frame)
+                    vad_buffer = vad_frame.astype(np.int16).tobytes()
                     is_speech = vad.is_speech(vad_buffer, 16000)
 
                     # Remove processed samples from the accumulator
