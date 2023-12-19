@@ -43,3 +43,5 @@ __pycache__/classification.cpython-310.pyc
 /.idea/modules.xml
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/vcs.xml
+profile.json
+profile.html
