@@ -34,3 +34,6 @@ user_models/Tom.pv
 user_dataset_temp/Tom/635.wav
 user_dataset_temp/Tom/304.wav
 user_dataset_temp/Tom/59.wav
+temp_cleaned_normalised.wav
+temp_cleaned.wav
+__pycache__/classification.cpython-310.pyc
