@@ -24,7 +24,7 @@ tools = [
         "type": "function",
         "function": {
             "name": "enroll_user",
-            "description": "DO NOT call the function at first. First, ask the user to say a sentence of 10 words, then ask for their name. For example: '[sentence] [name]'",
+            "description": "Make the sentence you give one that they will ask you, for example 'Tell me the weather in'. It doesn't have to match exactly, but it should be similar. Needs to be in the form [sentence] [name of user]",
             "parameters": {
                 "type": "object",
                 "properties": {
