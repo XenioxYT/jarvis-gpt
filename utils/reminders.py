@@ -44,24 +44,29 @@ def add_reminder(reminder_text, reminder_time):
 
 def get_closest_reminder_matches(search_text, threshold=0.5):
     """
-    Find reminders with descriptions closely matching the given string.
+    Optimized to reduce unnecessary list comprehensions and improve efficiency in searching.
     
     :param search_text: String to match against reminder descriptions.
     :param threshold: Float, similarity ratio must be greater than this threshold to be considered a match.
     :return: A list of potential reminders that match.
     """
     reminders = load_reminders()
-    descriptions = [r['text'] for r in reminders if not r['notified']]
+    # Filtering and collecting descriptions in one pass
+    descriptions = []
+    reminder_map = {}  # Maps description to reminder for quick access
+    for reminder in reminders:
+        if not reminder['notified']:
+            descriptions.append(reminder['text'])
+            reminder_map[reminder['text']] = reminder
+
     matches = get_close_matches(search_text, descriptions, n=3, cutoff=threshold)
 
-    # If exact match, return that reminder only
-    if search_text in descriptions:
-        matching_reminders = [r for r in reminders if r['text'] == search_text]
-        return (matching_reminders, True)
+    if search_text in reminder_map:
+        # Direct access to the reminder if an exact match is found
+        return ([reminder_map[search_text]], True)
 
-    # Otherwise, return all close matches
-    matching_descriptions = set(matches)
-    matching_reminders = [r for r in reminders if r['text'] in matching_descriptions]
+    # Collecting matching reminders using the map for faster access
+    matching_reminders = [reminder_map[desc] for desc in matches if desc in reminder_map]
 
     return (matching_reminders, False)
 
