@@ -41,6 +41,11 @@ from pveagle_speaker_identification import enroll_user, determine_speaker
 from noise_reduction import reduce_noise_and_normalize
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
+# Profiling
+# from scalene import scalene_profiler
+
+# scalene_profiler.start()
+
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
@@ -145,7 +150,7 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./creds.json"
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 LISTENING_SOUND = "./sounds/started_listening.wav"
 STOPPED_LISTENING_SOUND = "./sounds/stopped_listening.wav"
-THINKING_SOUND = "./sounds/thinking.wav"
+# THINKING_SOUND = "./sounds/thinking.wav"
 SUCCESS_SOUND = "./sounds/success.wav"
 
 client = texttospeech.TextToSpeechClient()
@@ -156,8 +161,8 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 REMINDERS_DB_FILE = 'reminders.json'
 
 porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
-koala = pvkoala.create(access_key=pv_access_key)
-cheetah = pvcheetah.create(access_key=pv_access_key, enable_automatic_punctuation=True)
+# koala = pvkoala.create(access_key=pv_access_key)
+# cheetah = pvcheetah.create(access_key=pv_access_key, enable_automatic_punctuation=True)
 
 
 def check_reminders(cursor=None, db_conn=None):
@@ -627,7 +632,7 @@ def main():
 
             while True:
                 pcm = audio_stream.read(vad_frame_len, exception_on_overflow=False)
-                pcm_unpacked = struct.unpack_from("h" * koala.frame_length, pcm)
+                pcm_unpacked = struct.unpack_from("h" * vad_frame_len, pcm)
 
                 pcm_boosted = [int(sample * volume_boost_factor) for sample in pcm_unpacked]
 
