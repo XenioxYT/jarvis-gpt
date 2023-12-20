@@ -209,38 +209,31 @@ def enroll_user_handler(name):
     random_number = random.randint(1, 1000)
     reduce_noise_and_normalize('./temp.wav')
 
-    # Construct the user directory path
-    user_dir = os.path.join('./user_dataset_temp', name)
-    os.makedirs(user_dir, exist_ok=True)
+    # Create the destination directory if it doesn't exist
+    os.makedirs(f'./user_dataset_temp/{name}', exist_ok=True)
 
-    # Copy and move the file to the destination
-    destination = os.path.join(user_dir, f'{random_number}.wav')
+    # Copy and move the file
+    destination = f"./user_dataset_temp/{name}/{random_number}.wav"
     shutil.copy("./temp_cleaned_normalised.wav", destination)
 
-    # List all audio files in the user directory
-    audio_files = [os.path.join(user_dir, file) for file in os.listdir(user_dir)]
+    audio_files = [f'./user_dataset_temp/{name}/{file}' for file in os.listdir(f'./user_dataset_temp/{name}')]
 
     return enroll_user(pv_access_key, audio_files, f"./user_models/{name}.pv")
 
 
 def determine_user_handler(queue):
-    dir_path = './user_models/'
-    audio_path = './temp_cleaned_normalised.wav'
-
-    # Using os.scandir for efficient directory scanning
-    with os.scandir(dir_path) as entries:
-        input_profile_paths = (os.path.join(dir_path, entry.name) for entry in entries if entry.is_file())
-
-        if not any(input_profile_paths):  # Check if the directory is empty
-            print("The directory is empty")
-            queue.put("Unknown")
-            return "Unknown"
-
-        # Call determine_speaker with a generator expression
-        result = determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths,
-                                   test_audio_path=audio_path)
+    # Check if the directory is empty
+    if not os.listdir('./user_models/'):
+        print("The directory is empty")
+        result = "Unknown"
         queue.put(result)
-        return result
+        return "Unknown"
+    input_profile_paths = [f'./user_models/{name}' for name in os.listdir('./user_models/')]
+    audio_path = './temp_cleaned_normalised.wav'
+    result = determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths,
+                               test_audio_path=audio_path)
+    queue.put(result)
+    return "Unknown"
 
 
 # Function to save the recorded audio to a WAV file
