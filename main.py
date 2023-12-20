@@ -411,7 +411,10 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
 
         for tool_call in tool_calls:
             function_name = tool_call['function']['name']
-            function_args = json.loads(tool_call['function']['arguments'])
+            try:
+                function_args = json.loads(tool_call['function']['arguments'])
+            except:
+                function_args = {}
 
             # Print tool call information
             print(f"Tool call: {tool_call}")
