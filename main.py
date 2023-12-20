@@ -545,31 +545,63 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
 # Function to convert text to speech using Google Cloud TTS
 def text_to_speech(text):
     synthesis_input = texttospeech.SynthesisInput(text=text)
-    voice = texttospeech.VoiceSelectionParams(language_code='en-GB', name='en-GB-Neural2-B')
-    audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.LINEAR16)
-    response = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
+
+    # Use a British accent voice, for example "en-GB-Wavenet-B"
+    voice = texttospeech.VoiceSelectionParams(
+        language_code='en-GB',
+        name='en-GB-Neural2-B',  # You can choose a different British Wavenet voice if desired
+        # ssml_gender=texttospeech.SsmlVoiceGender.MALE
+    )
+
+    # Use  audio encoding for high quality
+    audio_config = texttospeech.AudioConfig(
+        audio_encoding=texttospeech.AudioEncoding.LINEAR16
+    )
+
+    # Perform the Text-to-Speech request on the text input with the selected voice parameters and audio file type
+    response = client.synthesize_speech(
+        input=synthesis_input,
+        voice=voice,
+        audio_config=audio_config
+    )
 
     fade_in_duration = 0.2  # Duration of the fade-in effect in seconds
-    audio_data = np.frombuffer(response.audio_content, dtype=np.int16).copy()  # Create a writable copy
-    fade_in_samples = int(fade_in_duration * 24000)
+    # Convert the audio content to a numpy array and make it writable
+    audio_data = np.frombuffer(response.audio_content, dtype=np.int16).copy()
+    fade_in_samples = int(fade_in_duration * 24000)  # Number of samples over which to apply the fade-in
     fade_in_curve = np.linspace(0, 1, fade_in_samples, dtype=np.float64)
 
-    # Apply the fade-in effect using vectorized operations
-    audio_data[:fade_in_samples] = np.int16(audio_data[:fade_in_samples] * fade_in_curve)
+    # Apply the fade-in effect
+    try:
+        for i in range(fade_in_samples):
+            audio_data[i] = np.int16(float(audio_data[i]) * fade_in_curve[i])
+    except IndexError:
+        pass
 
+    # Convert the audio data back to bytes
     modified_audio_content = audio_data.tobytes()
+
+    # First, save the modified audio to a buffer
     audio_buffer = io.BytesIO(modified_audio_content)
 
+    # Then, play the audio buffer using PyAudio
     # Define PyAudio stream callback for asynchronous playback
     def callback(in_data, frame_count, time_info, status):
-        return (audio_buffer.read(frame_count * 2), pyaudio.paContinue)
+        data = audio_buffer.read(frame_count * 2)  # 2 bytes per sample for LINEAR16
+        return (data, pyaudio.paContinue)
 
+    # Initialize PyAudio and open a stream for playback
     p = pyaudio.PyAudio()
-    stream = p.open(format=p.get_format_from_width(2), channels=1, rate=24000, output=True, stream_callback=callback)
+    stream = p.open(format=p.get_format_from_width(2),
+                    channels=1,
+                    rate=24000,  # Ensure this matches the sample rate from the TTS response
+                    output=True,
+                    stream_callback=callback)
 
-    # Simplified playback loop
+    # Start the playback stream and wait for it to finish
     stream.start_stream()
-    stream.is_active() and time.sleep(0.1)
+    while stream.is_active():
+        time.sleep(0.1)  # Pause in the loop to reduce CPU usage
     stream.stop_stream()
     stream.close()
     audio_buffer.close()
