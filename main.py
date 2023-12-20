@@ -382,55 +382,63 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "enroll_user": enroll_user_handler,
         }
 
+        messages.append(
+            {
+                "role": "assistant",
+                "content": str(tool_calls),
+            }
+        )
+
         if len(tool_calls) > 1:
             multiple_tool_calls = True
         else:
             multiple_tool_calls = False
 
+        # Map function names to their TTS messages
+        tts_messages = {
+            "play_song_on_spotify": "Connecting to your speakers...",
+            "set_reminder": "Accessing reminders...",
+            "add_event_to_calendar": lambda args: f"Adding {args['title']} to your calendar...",
+            "get_weather_data": "Getting live weather data...",
+            "check_calendar": "Checking your calendar...",
+            "control_switch": "Controling your smart home...",
+            "edit_reminder": "Editing your reminders...",
+            "list_unnotified_reminders": "Getting your reminders...",
+            "enroll_user": "Learning your voice...",
+        }
+
+        multiple_tool_calls = len(tool_calls) > 1
+
         for tool_call in tool_calls:
             function_name = tool_call['function']['name']
             function_args = json.loads(tool_call['function']['arguments'])
 
-            # messages.append( { "role": "assistant", "content": "You called a function with the following
-            # parameters" + function_name + " " + str(function_args), } )
-            if cursor:
-                store_conversation(1, messages, cursor, db_conn)
-            else:
-                store_conversation(1, messages)
-
+            # Print tool call information
             print(f"Tool call: {tool_call}")
             print(f"Function name: {function_name}", f"Function args: {function_args}")
 
+            # Determine the TTS message based on the function name and whether multiple tools are called
+            tts_message = tts_messages.get(function_name, "Connecting to the internet")
             if multiple_tool_calls:
-                tts_thread_function = threading.Thread(target=text_to_speech_thread,
-                                                       args=("Accessing multiple tools...",))
-                tts_thread_function.start()
+                tts_message = "Accessing multiple tools..."
 
-            else:
-                if function_name == "play_song_on_spotify":
-                    tts_thread_function = threading.Thread(target=text_to_speech_thread,
-                                                           args=("Connecting to your speakers...",))
-                    tts_thread_function.start()
-                elif function_name == "set_reminder":
-                    tts_thread_function = threading.Thread(target=text_to_speech_thread,
-                                                           args=("Accessing reminders...",))
-                    tts_thread_function.start()
+            # Start the TTS thread
+            tts_thread_function = threading.Thread(target=text_to_speech_thread, args=(tts_message,))
+            tts_thread_function.start()
 
-                elif function_name == "add_event_to_calendar":
-                    event_name = function_args['title']
-                    tts_thread_function = threading.Thread(target=text_to_speech_thread,
-                                                           args=("Adding " + event_name + " to your calendar...",))
-                    tts_thread_function.start()
+            # Execute the function if available and store the response
+            if function_name in available_functions:
+                function_response = available_functions[function_name](**function_args)
+                print(function_response)
 
-                elif function_name == "get_weather_data":
-                    tts_thread_function = threading.Thread(target=text_to_speech_thread,
-                                                           args=("Getting live weather data...",))
-                    tts_thread_function.start()
+                # Send the function response back to the model and store the conversation
+                messages.append({
+                    "role": "function",
+                    "name": function_name,
+                    "content": function_response,
+                })
+                store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
 
-                else:
-                    tts_thread_function = threading.Thread(target=text_to_speech_thread,
-                                                           args=("Connecting to the internet",))
-                    tts_thread_function.start()
 
             if function_name in available_functions:
                 function_response = available_functions[function_name](**function_args)
