@@ -41,6 +41,7 @@ from pveagle_speaker_identification import enroll_user, determine_speaker
 from noise_reduction import reduce_noise_and_normalize
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from utils.google_search import google_search
+from news.bbc_news import download_bbc_news_summary, convert_and_play_mp3
 
 # Profiling
 # from scalene import scalene_profiler
@@ -64,6 +65,7 @@ load_dotenv()
 thinking_sound_stop_event = threading.Event()
 
 current_playback = None
+bbc_news_thread = False
 
 
 def play_sound(sound_file, loop=False):
@@ -292,6 +294,7 @@ def text_to_speech_thread(text):
 
 # Function to get response from ChatGPT, making any necessary tool calls
 def get_chatgpt_response(text, function=False, function_name=None, cursor=None, db_conn=None, speaker="Unknown"):
+    global bbc_news_thread
     if function:
         messages.append(
             {
@@ -382,6 +385,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "play_song_on_spotify": search_spotify_song,
             "enroll_user": enroll_user_handler,
             "google_search": google_search,
+            "bbc_news_briefing": download_bbc_news_summary,
         }
 
         messages.append(
@@ -408,6 +412,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "list_unnotified_reminders": "Getting your reminders...",
             "enroll_user": "Learning your voice...",
             "google_search": "Searching the web...",
+            "bbc_news_briefing": "Getting the latest news...",
         }
 
         multiple_tool_calls = len(tool_calls) > 1
@@ -418,6 +423,8 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
                 function_args = json.loads(tool_call['function']['arguments'])
             except:
                 function_args = {}
+            if function_name == "bbc_news_briefing":
+                bbc_news_thread = True
 
             # Print tool call information
             print(f"Tool call: {tool_call}")
@@ -715,6 +722,24 @@ def main():
             if spotify_was_playing:
                 toggle_spotify_playback()
             text_to_speech(response)
+            global bbc_news_thread
+            stop_event = threading.Event()
+            if bbc_news_thread:
+                news_thread = threading.Thread(target=convert_and_play_mp3, args=("bbc_news_summary.mp3", stop_event))
+                news_thread.start()
+                while news_thread.is_alive():
+                    pcm = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
+                    pcm_unpacked = np.frombuffer(pcm, dtype='h', count=porcupine.frame_length)
+                    pcm_boosted = np.multiply(pcm_unpacked, volume_boost_factor).astype(int)
+                    keyword_index = porcupine.process(pcm_boosted)
+                    if keyword_index >= 0:
+                        stop_event.set()  # If wake word detected, signal to stop TTS playback
+                        bbc_news_thread = False
+                        text_to_speech("Stopped playback of BBC News Summary.")
+                        break
+                news_thread.join()  # Ensure TTS thread is finished before restarting the loop
+
+            stop_event.clear()  # Clear the stop event for the next speech cycle
             if spotify_was_playing:
                 toggle_spotify_playback(force_play=True)
 
