@@ -40,6 +40,7 @@ from utils.store_conversation import store_conversation
 from pveagle_speaker_identification import enroll_user, determine_speaker
 from noise_reduction import reduce_noise_and_normalize
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+from utils.google_search import google_search
 
 # Profiling
 # from scalene import scalene_profiler
@@ -380,6 +381,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "control_switch": toggle_entity,
             "play_song_on_spotify": search_spotify_song,
             "enroll_user": enroll_user_handler,
+            "google_search": google_search,
         }
 
         messages.append(
@@ -405,6 +407,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "edit_reminder": "Editing your reminders...",
             "list_unnotified_reminders": "Getting your reminders...",
             "enroll_user": "Learning your voice...",
+            "google_search": "Searching the web...",
         }
 
         multiple_tool_calls = len(tool_calls) > 1
