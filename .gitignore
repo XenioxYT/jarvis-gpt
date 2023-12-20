@@ -45,3 +45,4 @@ __pycache__/classification.cpython-310.pyc
 /.idea/vcs.xml
 profile.json
 profile.html
+news/__pycache__/bbc_news.cpython-310.pyc
