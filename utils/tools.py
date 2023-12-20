@@ -153,6 +153,22 @@ tools = [
             },
         },
     },
+        {
+        "type": "function",
+        "function": {
+            "name": "bbc_news_briefing",
+            "description": "Play a BBC News briefing to the user",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "dummy_variable": {
+                        "type": "string",
+                        "description": "This is a dummy variable to allow the function to be called without any parameters.",
+                    },
+                },
+            },
+        },
+    },
     {
         "type": "function",
         "function": {
