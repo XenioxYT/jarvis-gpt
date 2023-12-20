@@ -740,6 +740,7 @@ def main():
                 news_thread.join()  # Ensure TTS thread is finished before restarting the loop
 
             stop_event.clear()  # Clear the stop event for the next speech cycle
+            bbc_news_thread = False
             if spotify_was_playing:
                 toggle_spotify_playback(force_play=True)
 
