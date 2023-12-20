@@ -62,8 +62,8 @@ load_dotenv()
 
 thinking_sound_stop_event = threading.Event()
 
+stop_event = threading.Event()
 current_playback = None
-
 
 def play_sound(sound_file, loop=False):
     global current_playback
@@ -155,6 +155,7 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 REMINDERS_DB_FILE = 'reminders.json'
 
 porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
+
 
 pipeline_model = pipeline(
     "automatic-speech-recognition",
@@ -285,8 +286,9 @@ def split_first_sentence(text):
 
 
 def text_to_speech_thread(text):
+    global stop_event
     # This function will run in a separate thread
-    text_to_speech(text)
+    text_to_speech(text, stop_event)
 
 
 # Function to get response from ChatGPT, making any necessary tool calls
@@ -543,40 +545,43 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
 
 
 # Function to convert text to speech using Google Cloud TTS
-def text_to_speech(text):
+def text_to_speech(text, stop_event):
+    global current_playback
+
     synthesis_input = texttospeech.SynthesisInput(text=text)
     voice = texttospeech.VoiceSelectionParams(language_code='en-GB', name='en-GB-Neural2-B')
     audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.LINEAR16)
     response = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
 
-    fade_in_duration = 0.2  # Duration of the fade-in effect in seconds
-    audio_data = np.frombuffer(response.audio_content, dtype=np.int16).copy()  # Create a writable copy
+    fade_in_duration = 0.2
+    audio_data = np.frombuffer(response.audio_content, dtype=np.int16).copy()
     fade_in_samples = int(fade_in_duration * 24000)
     fade_in_curve = np.linspace(0, 1, fade_in_samples, dtype=np.float64)
-
-    # Apply the fade-in effect using vectorized operations
     audio_data[:fade_in_samples] = np.int16(audio_data[:fade_in_samples] * fade_in_curve)
-
     modified_audio_content = audio_data.tobytes()
     audio_buffer = io.BytesIO(modified_audio_content)
 
-    # Define PyAudio stream callback for asynchronous playback
     def callback(in_data, frame_count, time_info, status):
+        if stop_event.is_set():
+            current_playback.stop()
+            return (None, pyaudio.paComplete)
         return (audio_buffer.read(frame_count * 2), pyaudio.paContinue)
-
+    
     p = pyaudio.PyAudio()
     stream = p.open(format=p.get_format_from_width(2), channels=1, rate=24000, output=True, stream_callback=callback)
 
-    # Simplified playback loop
     stream.start_stream()
-    stream.is_active() and time.sleep(0.1)
+    while stream.is_active() and not stop_event.is_set():
+        time.sleep(0.1)
     stream.stop_stream()
     stream.close()
     audio_buffer.close()
     p.terminate()
+    stop_event.clear()
 
 
 def main():
+    global stop_event, current_playback
     audio_stream = pa.open(
         rate=16000,
         channels=1,
@@ -591,46 +596,46 @@ def main():
     volume_boost_factor = 2.5
 
     print("Say 'Jarvis' to wake up the assistant...")
+    voice_activated_again = False
 
     while True:
-        pcm = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
-        pcm_unpacked = np.frombuffer(pcm, dtype='h', count=porcupine.frame_length)
-
-        pcm_boosted = np.multiply(pcm_unpacked, volume_boost_factor).astype(int)
-        # pcm_suppressed = koala.process(pcm_unpacked)
-        keyword_index = porcupine.process(pcm_boosted)
+        if voice_activated_again == False:
+            pcm = audio_stream.read(porcupine.frame_length)
+            pcm_unpacked = np.frombuffer(pcm, dtype=np.int16)
+            pcm_boosted = np.multiply(pcm_unpacked, volume_boost_factor).astype(np.int16)
+            keyword_index = porcupine.process(pcm_boosted)
 
         if keyword_index >= 0:
+            stop_event.set()  # Signal to stop any ongoing TTS playback
+            if current_playback is not None and current_playback.is_playing():
+                current_playback.stop()
+                current_playback = None
+            stop_event.clear()  # Clear the stop_event for the next speech detection
+            play_sound(LISTENING_SOUND)
             print("Jarvis activated. Listening for your command...")
             spotify_was_playing = False
             # if is_spotify_playing_on_device():
             #     spotify_was_playing = True
-            # toggle_spotify_playback()
-            play_sound(LISTENING_SOUND)
-            time.sleep(0.25)
+            #     toggle_spotify_playback()
+
             accumulated_frames = []
             num_silent_frames = 0
             vad_frame_accumulator = []
             vad_frame_len = int(0.02 * 16000)  # 20 ms
 
+            # Loop to capture the audio after wake word detected
+            voice_activated_again = False
             while True:
                 pcm = audio_stream.read(vad_frame_len, exception_on_overflow=False)
                 pcm_unpacked = np.frombuffer(pcm, dtype='h', count=vad_frame_len)
 
-                pcm_boosted = np.multiply(pcm_unpacked, volume_boost_factor).astype(int)
+                pcm_boosted = np.multiply(pcm_unpacked, volume_boost_factor).astype(np.int16)  # Ensure int16 type
+                vad_frame_accumulator.extend(pcm_boosted)
 
-                # Apply Koala noise suppression
-                # pcm_suppressed = koala.process(pcm_boosted)
-
-                # Accumulate the suppressed frames for a full VAD frame
-                vad_frame_accumulator = np.append(vad_frame_accumulator, pcm_boosted)
-                # Once enough samples are accumulated for a 20 ms frame, process with VAD
                 if len(vad_frame_accumulator) >= vad_frame_len:
-                    vad_frame = vad_frame_accumulator[:vad_frame_len]
-                    vad_buffer = vad_frame.astype(np.int16).tobytes()
-                    is_speech = vad.is_speech(vad_buffer, 16000)
-
-                    # Remove processed samples from the accumulator
+                    # Convert the np.int16 array to bytes for VAD processing
+                    vad_frame = np.array(vad_frame_accumulator[:vad_frame_len], dtype=np.int16).tobytes()
+                    is_speech = vad.is_speech(vad_frame, 16000)
                     vad_frame_accumulator = vad_frame_accumulator[vad_frame_len:]
 
                     if is_speech:
@@ -638,25 +643,20 @@ def main():
                     else:
                         num_silent_frames += 1
 
-                    # Accumulate the suppressed frames
-                    accumulated_frames.append(vad_buffer)
-
-                    if num_silent_frames > 60:  # Stop capturing after a short period of silence
-                        print("Done capturing.")
+                    accumulated_frames.append(vad_frame)
+                    if num_silent_frames > 30:  # Stop capturing after a short period of silence
                         play_sound(STOPPED_LISTENING_SOUND)
-                        if spotify_was_playing:
-                            toggle_spotify_playback(force_play=True)
                         break
 
-            # Save the suppressed audio
             save_audio(accumulated_frames)
             reduce_noise_and_normalize('./temp.wav')
             print("Processing audio...")
-            # Create a queue for each thread to put their result into
+
+            # Create queues for transcription and user determination
             transcribe_queue = Queue()
             user_handler_queue = Queue()
 
-            # Initialize and start threads with the queues as arguments
+            # Start threads for transcription and user determination
             transcript_thread = threading.Thread(target=transcribe, args=(transcribe_queue,))
             user_handler_thread = threading.Thread(target=determine_user_handler, args=(user_handler_queue,))
             transcript_thread.start()
@@ -664,21 +664,36 @@ def main():
 
             # Wait for threads to finish
             transcript_thread.join()
-            print("transcription thread finished!")
             user_handler_thread.join()
-            print("determine user thread finished!")
 
-            # Retrieve results from the queues
+            # Retrieve results from queues
             command = transcribe_queue.get()
-            print(command)
             user = user_handler_queue.get()
-            print(user)
+
+            # Obtain response from GPT model
             response = get_chatgpt_response(command, speaker=str(user))
-            if spotify_was_playing:
-                toggle_spotify_playback()
-            text_to_speech(response)
+
+            # Initiate TTS for the response
+            tts_thread = threading.Thread(target=text_to_speech_thread, args=(response,))
+            tts_thread.start()
+
+            # Monitor audio stream for next wake word during TTS playback
+            while tts_thread.is_alive():
+                pcm = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
+                pcm_unpacked = np.frombuffer(pcm, dtype='h', count=porcupine.frame_length)
+                pcm_boosted = np.multiply(pcm_unpacked, volume_boost_factor).astype(int)
+                keyword_index = porcupine.process(pcm_boosted)
+                if keyword_index >= 0:
+                    stop_event.set()  # If wake word detected, signal to stop TTS playback
+                    voice_activated_again = True
+                    play_sound(LISTENING_SOUND)
+                    break
+            tts_thread.join()  # Ensure TTS thread is finished before restarting the loop
+
             if spotify_was_playing:
                 toggle_spotify_playback(force_play=True)
+
+            stop_event.clear()  # Clear the stop event for the next speech cycle
 
     audio_stream.close()
     pa.terminate()
