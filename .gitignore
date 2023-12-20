@@ -48,3 +48,4 @@ profile.html
 news/__pycache__/bbc_news.cpython-310.pyc
 news/bbc_news_summary.mp3
 bbc_news_summary.mp3
+utils/__pycache__/google_search.cpython-310.pyc
