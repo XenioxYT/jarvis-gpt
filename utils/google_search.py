@@ -24,6 +24,6 @@ def google_search(query):
     return '\n'.join(results)
 
 # # Example usage
-query = 'example query'
-print(google_search(query))
+# query = 'example query'
+# print(google_search(query))
 
