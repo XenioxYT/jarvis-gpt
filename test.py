@@ -199,6 +199,17 @@ phrases = [
     "extinguish the lights", "darken the room", "turn the lights down", "deactivate the lights", "lights off please",
     "kill the lights", "shut off the lights", "lower the lights", "reduce brightness", "fade the lights",
     "lights to zero", "no more light", "eliminate light", "turn down lights", "lights to minimum",
+    
+    # News phrases
+    "tell me the news", "play the news", "play the latest news", "play the news for today", "play the news for me",
+    "give me the latest from BBC News", "play today's news summary", "I'd like to hear the news from BBC", 
+    "what's the latest news on BBC", "BBC news update please", "can you play the top stories from BBC News",  
+    "start the BBC news briefing", "play BBC's news report", "I need to hear the morning news from BBC", 
+    "what are the evening headlines on BBC", "play the most recent news from BBC", "BBC News, please",
+    "BBC's main news stories today",
+    "can you play the midday news from BBC", "show me the latest news broadcast from BBC", 
+    "what's the current news on BBC",
+    "tell me today's headlines from BBC", "BBC's latest news coverage, please", "play the news headlines by the BBC",
 
     # Other phrases
     "what's the weather today", "play some music", "set an alarm for 7 am", "remind me to call John",
@@ -240,6 +251,13 @@ labels = [
     "turn_off_light", "turn_off_light", "turn_off_light", "turn_off_light", "turn_off_light",
     "turn_off_light", "turn_off_light", "turn_off_light", "turn_off_light", "turn_off_light",
     "turn_off_light", "turn_off_light", "turn_off_light", "turn_off_light", "turn_off_light",
+    
+    # Labels for the news
+    "news", "news", "news", "news", "news",
+    "news", "news", "news", "news", "news",
+    "news", "news", "news", "news", "news",
+    "news", "news", "news", "news", "news",
+    "news", "news", "news", "news",
 
     # Labels for other
     "other", "other", "other", "other", "other",
@@ -289,6 +307,14 @@ def predict_intent(command):
 
 
 # Example usage
-command = "plunge me into darkness"
+command = "tell me about the BBC"
 intent = predict_intent(command)
-print(f"Predicted intent: {intent}")
+phrases = [
+    "turn on the light", "lights on", "can you light up the room", "make it brighter", "switch on the lights", "illuminate the room", 
+    "light up", "brighten the room", "activate the lights", "bring light", "let there be light", "shine the light", "enable lighting", "turn lights to full", 
+    "light this place up", "more light please", "lights to maximum", "open the blinds", "raise the lights", "lights to 100%",
+    "remind me to call john", "how do I get to the nearest gas station", "play the news", "play the latest podcast", "find a nearby restaurant",
+    ]
+for command in phrases:
+    intent = predict_intent(command)
+    print(f"Command: {command} - Intent: {intent}")
