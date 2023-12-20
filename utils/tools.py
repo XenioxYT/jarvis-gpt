@@ -20,7 +20,7 @@ tools = [
             },
         }
     },
-        {
+    {
         "type": "function",
         "function": {
             "name": "enroll_user",
@@ -51,6 +51,23 @@ tools = [
                     }
                 },
                 "required": ["date"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "google_search",
+            "description": "Search Google for a given query and return the top results.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The query to search for.",
+                    }
+                },
+                "required": ["query"],
             },
         },
     },
