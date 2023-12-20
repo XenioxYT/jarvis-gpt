@@ -27,6 +27,7 @@ import io
 import datetime
 import simpleaudio as sa
 from queue import Queue
+import joblib
 
 # imports for the tools
 from utils.tools import tools
@@ -42,6 +43,7 @@ from noise_reduction import reduce_noise_and_normalize
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from utils.google_search import google_search
 from news.bbc_news import download_bbc_news_summary, convert_and_play_mp3
+from utils.intent_prediction import predict_intent
 
 # Profiling
 # from scalene import scalene_profiler
@@ -66,6 +68,9 @@ thinking_sound_stop_event = threading.Event()
 
 current_playback = None
 bbc_news_thread = False
+
+classifier = joblib.load('light_intent_classifier.pkl')
+vectorizer = joblib.load('vectorizer.pkl')
 
 
 def play_sound(sound_file, loop=False):
@@ -291,9 +296,9 @@ def text_to_speech_thread(text):
     # This function will run in a separate thread
     text_to_speech(text)
 
-
 # Function to get response from ChatGPT, making any necessary tool calls
 def get_chatgpt_response(text, function=False, function_name=None, cursor=None, db_conn=None, speaker="Unknown"):
+    
     global bbc_news_thread
     if function:
         messages.append(
@@ -311,13 +316,8 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
     else:
         store_conversation(1, messages)
 
-    # Send the initial message and the available tool to the model
-    response = oai_client.chat.completions.create(
-        model="gpt-4-1106-preview",
-        messages=messages,
-        tools=tools,
-        stream=True,
-    )
+    intent = predict_intent(text, classifier, vectorizer)
+    print(intent)
     completion = ""
     full_completion = ""
     full_completion_2 = ""
@@ -326,50 +326,70 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
     waiting_for_number = False
     waiting_for_number_second_response = False
     tool_calls = []
+    if intent == "other" or intent == "multiple":
 
-    for chunk in response:
-        delta = chunk.choices[0].delta
-        if delta.content or delta.content == '':
-            completion += chunk.choices[0].delta.content
-            # print(completion)
-            full_completion += chunk.choices[0].delta.content
+        # Send the initial message and the available tool to the model
+        response = oai_client.chat.completions.create(
+            model="gpt-4-1106-preview",
+            messages=messages,
+            tools=tools,
+            stream=True,
+        )
+        completion = ""
+        full_completion = ""
+        full_completion_2 = ""
+        first_sentence_processed = False
+        first_sentence_processed_second_response = False
+        waiting_for_number = False
+        waiting_for_number_second_response = False
+        tool_calls = []
 
-            if waiting_for_number and completion[0].isdigit():
-                # Append the number to the previously processed sentence
-                string1 += completion
-                waiting_for_number = False
+        for chunk in response:
+            delta = chunk.choices[0].delta
+            if delta.content or delta.content == '':
+                completion += chunk.choices[0].delta.content
+                # print(completion)
+                full_completion += chunk.choices[0].delta.content
 
-            elif not first_sentence_processed and any(punctuation in completion for punctuation in ["!", ".", "?"]):
-                if not re.search(r'\d+\.\d+', completion):
-                    string1, rest = split_first_sentence(completion)
+                if waiting_for_number and completion[0].isdigit():
+                    # Append the number to the previously processed sentence
+                    string1 += completion
+                    waiting_for_number = False
 
-                    # Check if string1 ends with a pattern like "number."
-                    if re.search(r'\d\.$', string1):
-                        waiting_for_number = True
-                    else:
-                        if string1:
-                            # Start the text-to-speech function in a separate thread
-                            tts_thread = threading.Thread(target=text_to_speech_thread, args=(string1,))
-                            tts_thread.start()
-                            completion = rest  # Reset completion to contain only the remaining text
-                            first_sentence_processed = True
+                elif not first_sentence_processed and any(punctuation in completion for punctuation in ["!", ".", "?"]):
+                    if not re.search(r'\d+\.\d+', completion):
+                        string1, rest = split_first_sentence(completion)
 
-        if chunk.choices[0].delta.tool_calls:
-            tcchunklist = delta.tool_calls
-            for tcchunk in tcchunklist:
-                if len(tool_calls) <= tcchunk.index:
-                    tool_calls.append({"id": "", "type": "function", "function": {"name": "", "arguments": ""}})
-                tc = tool_calls[tcchunk.index]
+                        # Check if string1 ends with a pattern like "number."
+                        if re.search(r'\d\.$', string1):
+                            waiting_for_number = True
+                        else:
+                            if string1:
+                                # Start the text-to-speech function in a separate thread
+                                tts_thread = threading.Thread(target=text_to_speech_thread, args=(string1,))
+                                tts_thread.start()
+                                completion = rest  # Reset completion to contain only the remaining text
+                                first_sentence_processed = True
 
-                if tcchunk.id:
-                    tc["id"] += tcchunk.id
-                    # print(tc["id"])
-                if tcchunk.function.name:
-                    tc["function"]["name"] += tcchunk.function.name
-                    # print(tc["function"]["name"])
-                if tcchunk.function.arguments:
-                    tc["function"]["arguments"] += tcchunk.function.arguments
-                    # print(tc["function"]["arguments"])
+            if chunk.choices[0].delta.tool_calls:
+                tcchunklist = delta.tool_calls
+                for tcchunk in tcchunklist:
+                    if len(tool_calls) <= tcchunk.index:
+                        tool_calls.append({"id": "", "type": "function", "function": {"name": "", "arguments": ""}})
+                    tc = tool_calls[tcchunk.index]
+
+                    if tcchunk.id:
+                        tc["id"] += tcchunk.id
+                        # print(tc["id"])
+                    if tcchunk.function.name:
+                        tc["function"]["name"] += tcchunk.function.name
+                        # print(tc["function"]["name"])
+                    if tcchunk.function.arguments:
+                        tc["function"]["arguments"] += tcchunk.function.arguments
+                        # print(tc["function"]["arguments"])
+    else: 
+        tool_calls.append({"id": "", "type": "function", "function": {"name": intent, "arguments": ""}})
+        
     if tool_calls:
 
         # Dictionary mapping function names to actual function implementations
