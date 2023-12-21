@@ -38,6 +38,7 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from utils.google_search import google_search
 from news.bbc_news import download_bbc_news_summary, convert_and_play_mp3
 from utils.predict_intent import predict_intent
+from utils.send_to_discord import send_message_sync
 
 
 # Profiling
@@ -145,6 +146,8 @@ store_conversation(1, messages)
 # Load environment variables
 api_key = os.getenv("OPENAI_API_KEY")
 api_base = os.getenv("OPENAI_API_BASE")
+
+discord_token = os.environ.get('DISCORD_TOKEN')
 
 oai_client = OpenAI(base_url=api_base, api_key=api_key)
 pv_access_key = os.getenv("PORCUPINE_ACCESS_KEY")
@@ -335,14 +338,6 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             tools=tools,
             stream=True,
         )
-        completion = ""
-        full_completion = ""
-        full_completion_2 = ""
-        first_sentence_processed = False
-        first_sentence_processed_second_response = False
-        waiting_for_number = False
-        waiting_for_number_second_response = False
-        tool_calls = []
 
         for chunk in response:
             delta = chunk.choices[0].delta
@@ -406,19 +401,16 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "enroll_user": enroll_user_handler,
             "google_search": google_search,
             "bbc_news_briefing": download_bbc_news_summary,
+            "send_to_phone": send_message_sync,
         }
 
         messages.append(
             {
-                "role": "assistant",
+                "role": "function",
+                "name": "tool_calls",
                 "content": str(tool_calls),
             }
         )
-
-        if len(tool_calls) > 1:
-            multiple_tool_calls = True
-        else:
-            multiple_tool_calls = False
 
         # Map function names to their TTS messages
         tts_messages = {
@@ -433,16 +425,18 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "enroll_user": "Learning your voice...",
             "google_search": "Searching the web...",
             "bbc_news_briefing": "Getting the latest news...",
+            "send_to_phone": "Sending a message to your phone...",
         }
 
         multiple_tool_calls = len(tool_calls) > 1
+        tts_multiple_spoken = False
 
         for tool_call in tool_calls:
             function_name = tool_call['function']['name']
             try:
                 function_args = json.loads(tool_call['function']['arguments'])
             except:
-                function_args = {}
+                function_args = {''}
             if function_name == "bbc_news_briefing":
                 bbc_news_thread = True
 
@@ -456,8 +450,11 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
                 tts_message = "Accessing multiple tools..."
 
             # Start the TTS thread
-            tts_thread_function = threading.Thread(target=text_to_speech_thread, args=(tts_message,))
-            tts_thread_function.start()
+            
+            if tts_multiple_spoken == False:
+                tts_thread_function = threading.Thread(target=text_to_speech_thread, args=(tts_message,))
+                tts_thread_function.start()
+                tts_multiple_spoken = True
 
             # Execute the function if available and store the response
             if function_name in available_functions:
@@ -472,24 +469,6 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
                 })
                 store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
 
-
-            if function_name in available_functions:
-                function_response = available_functions[function_name](**function_args)
-                print(function_response)
-
-                # Send the function response back to the model
-                messages.append(
-                    {
-                        "role": "function",
-                        "name": function_name,
-                        "content": function_response,
-                    }
-                )
-                if cursor:
-                    store_conversation(1, messages, cursor, db_conn)
-                else:
-                    store_conversation(1, messages)
-                    continue
         try:
             second_response = oai_client.chat.completions.create(
                 model="gpt-4-1106-preview",
@@ -512,9 +491,11 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
                     completion += chunk.choices[0].delta.content
                     # print(completion)
                     full_completion_2 += chunk.choices[0].delta.content
-
-                    if tts_thread_function.is_alive():
-                        tts_thread_function.join()
+                    try:
+                        if tts_thread_function.is_alive():
+                            tts_thread_function.join()
+                    except:
+                        pass
 
                     if waiting_for_number_second_response and completion[0].isdigit():
                         # Append the number to the previously processed sentence
@@ -544,10 +525,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
                     "content": full_completion_2,
                 }
             )
-            if cursor:
-                store_conversation(1, messages, cursor, db_conn)
-            else:
-                store_conversation(1, messages)
+            store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
             # Assume that we return the final response text after the tool call handling
             try:
                 if tts_thread.is_alive():
