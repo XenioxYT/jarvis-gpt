@@ -50,3 +50,5 @@ news/bbc_news_summary.mp3
 bbc_news_summary.mp3
 utils/__pycache__/google_search.cpython-310.pyc
 utils/__pycache__/intent_prediction.cpython-310.pyc
+utils/__pycache__/predict_intent.cpython-310.pyc
+utils/__pycache__/send_to_discord.cpython-310.pyc
