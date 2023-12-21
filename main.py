@@ -43,7 +43,7 @@ from noise_reduction import reduce_noise_and_normalize
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from utils.google_search import google_search
 from news.bbc_news import download_bbc_news_summary, convert_and_play_mp3
-from utils.intent_prediction import predict_intent
+from utils.predict_intent import predict_intent
 import spacy
 
 # Profiling
