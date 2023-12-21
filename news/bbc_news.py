@@ -63,7 +63,7 @@ def download_bbc_news_summary():
     finally:
         # Close the WebDriver
         driver.quit()
-        return "Downloaded BBC News Summary. It will play after your next response. If the user would like to interrupt the playback, they can say your name (however, do not mention your name)."
+        return "Downloaded BBC News Summary. It will play after your response. If the user would like to interrupt the playback, they can say your name (however, do not mention your name)."
 
 def convert_and_play_mp3(path_to_mp3, stop_event):
     global current_playback
