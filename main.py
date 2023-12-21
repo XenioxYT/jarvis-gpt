@@ -2,18 +2,14 @@ import json
 import os
 import re
 import sqlite3
-import struct
 import threading
 import time
 import pyaudio
-import pvkoala
-import pvcheetah
 import wave
 import requests
 import numpy as np
 import torch
 import webrtcvad
-import queue as thread_queue
 import pvporcupine
 import shutil
 import random
@@ -21,13 +17,11 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import torch
 from google.cloud import texttospeech
-import pyttsx3
-import whisper
 import io
 import datetime
 import simpleaudio as sa
 from queue import Queue
-import joblib
+import spacy
 
 # imports for the tools
 from utils.tools import tools
@@ -44,7 +38,7 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from utils.google_search import google_search
 from news.bbc_news import download_bbc_news_summary, convert_and_play_mp3
 from utils.predict_intent import predict_intent
-import spacy
+
 
 # Profiling
 # from scalene import scalene_profiler
