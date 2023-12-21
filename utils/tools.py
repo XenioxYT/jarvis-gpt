@@ -159,15 +159,6 @@ tools = [
         "function": {
             "name": "list_reminders",
             "description": "List all reminders that have not yet been notified",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "dummy_variable": {
-                        "type": "string",
-                        "description": "This is a dummy variable to allow the function to be called without any parameters.",
-                    },
-                },
-            },
         },
     },
     {
@@ -175,32 +166,14 @@ tools = [
         "function": {
             "name": "bbc_news_briefing",
             "description": "Play a BBC News briefing to the user. It will be played after your next response.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "dummy_variable": {
-                        "type": "string",
-                        "description": "This is a dummy variable to allow the function to be called without any parameters.",
-                    },
-                },
-            },
         },
     },
     {
         "type": "function",
         "function": {
             "name": "bbc_news_briefing",
-            "description": "Play a BBC News briefing to the user",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "dummy_variable": {
-                        "type": "string",
-                        "description": "This is a dummy variable to allow the function to be called without any parameters.",
-                    },
-                },
-            },
-        },
+            "description": "Play a BBC News briefing to the user."
+        }
     },
     {
         "type": "function",
@@ -236,7 +209,29 @@ tools = [
                         "description": "The search term for the song, e.g., 'Shape of You - Ed Sheeran'."
                     },
                 },
+                "required": ["search_term"],
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "send_to_phone",
+            "description": "Send a message to the user's phone, for example links, calendar events or reminders. Link the user to their username. Format the message using markdown.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "description": "The username of the user to send the message to. Use the references: ['user' = 'username'], ['Tom' = 'xeniox']",
+                    },
+                    "text": {
+                        "type": "string",
+                        "description": "The text to send to the user's phone.",
+                    },
+                },
+                "required": ["username", "text"],
+            },
+        },
     },
 ]
