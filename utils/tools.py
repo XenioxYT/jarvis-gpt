@@ -157,7 +157,7 @@ tools = [
     {
         "type": "function",
         "function": {
-            "name": "list_unnotified_reminders",
+            "name": "list_reminders",
             "description": "List all reminders that have not yet been notified",
             "parameters": {
                 "type": "object",
