@@ -44,6 +44,7 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from utils.google_search import google_search
 from news.bbc_news import download_bbc_news_summary, convert_and_play_mp3
 from utils.intent_prediction import predict_intent
+import spacy
 
 # Profiling
 # from scalene import scalene_profiler
@@ -69,9 +70,14 @@ thinking_sound_stop_event = threading.Event()
 current_playback = None
 bbc_news_thread = False
 
-classifier = joblib.load('light_intent_classifier.pkl')
-vectorizer = joblib.load('vectorizer.pkl')
-
+try:
+    spacy.prefer_gpu()
+    nlp = spacy.load("en_core_web_lg")
+except OSError:
+    print("Downloading language model for the spaCy POS tagger")
+    from spacy.cli import download
+    download("en_core_web_lg")
+    nlp = spacy.load("en_core_web_lg")
 
 def play_sound(sound_file, loop=False):
     global current_playback
@@ -316,7 +322,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
     else:
         store_conversation(1, messages)
 
-    intent = predict_intent(text, classifier, vectorizer)
+    intent = predict_intent(text, nlp)
     print(intent)
     completion = ""
     full_completion = ""
@@ -326,7 +332,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
     waiting_for_number = False
     waiting_for_number_second_response = False
     tool_calls = []
-    if intent == "other" or intent == "multiple":
+    if intent == None:
 
         # Send the initial message and the available tool to the model
         response = oai_client.chat.completions.create(
@@ -399,7 +405,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             # "google_search": google_search,
             "set_reminder": add_reminder,
             "edit_reminder": edit_reminder,
-            "list_unnotified_reminders": list_unnotified_reminders,
+            "list_reminders": list_unnotified_reminders,
             "add_event_to_calendar": add_event_to_calendar,
             "control_switch": toggle_entity,
             "play_song_on_spotify": search_spotify_song,
@@ -429,7 +435,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "check_calendar": "Checking your calendar...",
             "control_switch": "Controling your smart home...",
             "edit_reminder": "Editing your reminders...",
-            "list_unnotified_reminders": "Getting your reminders...",
+            "list_reminders": "Getting your reminders...",
             "enroll_user": "Learning your voice...",
             "google_search": "Searching the web...",
             "bbc_news_briefing": "Getting the latest news...",
@@ -756,6 +762,13 @@ def main():
                         stop_event.set()  # If wake word detected, signal to stop TTS playback
                         bbc_news_thread = False
                         text_to_speech("Stopped playback of BBC News Summary.")
+                        messages.append(
+                            {
+                                "role": "assistant",
+                                "content": "Stopped playback of BBC News Summary.",
+                            }
+                        )
+                        bbc_news_thread = False
                         break
                 news_thread.join()  # Ensure TTS thread is finished before restarting the loop
 
