@@ -23,7 +23,7 @@ def predict_intent(text, nlp):
             best_intent = intent
 
     # Determine if the highest similarity score is above a threshold
-    if highest_similarity > 0.7:  # Adjust the threshold as needed
+    if highest_similarity > 0.85:  # Adjust the threshold as needed
         return best_intent
     
     return None
