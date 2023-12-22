@@ -192,7 +192,7 @@ tools = [
                 "properties": {
                     "entity_id": {
                         "type": "string",
-                        "description": "The entity ID to toggle. These entities are: switch.desk_lamp_socket_1'"
+                        "description": "The entity ID to toggle. These entities are: light.dad_s_house_bedroom'"
                     },
                     "switch": {
                         "type": "boolean",
