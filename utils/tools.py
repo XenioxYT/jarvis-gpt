@@ -273,17 +273,21 @@ tools = [
         "type": "function",
         "function": {
             "name": "edit_or_delete_notes",
-            "description": "Edits or deletes a note for a given user. If multiple notes with the same title are found, it lists all matches. Otherwise, it updates or deletes the note.",
+            "description": "Edits or deletes a note for a given user. If multiple notes with the same title are found, it lists all matches. Otherwise, it updates or deletes the note based on the new title and text.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "title": {
                         "type": "string",
-                        "description": "The title of the note to be edited or deleted."
+                        "description": "The search title of the note to be edited or deleted."
                     },
-                    "new_data": {
-                        "type": "object",
-                        "description": "New data for updating the note. If not provided, the note will be deleted."
+                    "new_title": {
+                        "type": "string",
+                        "description": "The new title for the note. If not provided but new_text is, only the text will be updated. If neither is provided, the note will be deleted."
+                    },
+                    "new_text": {
+                        "type": "string",
+                        "description": "The new text for the note. If not provided but new_title is, only the title will be updated. If neither is provided, the note will be deleted."
                     }
                 },
                 "required": ["title"]
