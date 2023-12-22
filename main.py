@@ -39,6 +39,8 @@ from utils.google_search import google_search
 from news.bbc_news import download_bbc_news_summary, convert_and_play_mp3
 from utils.predict_intent import predict_intent
 from utils.send_to_discord import send_message_sync
+from utils.volume_control import volume_up, volume_down
+from utils.notes import save_note, retrieve_notes, edit_or_delete_notes
 
 
 # Profiling
@@ -128,8 +130,9 @@ messages = [
         "Make the sentence you give one that they will ask you, for example 'Tell me the weather in'" + city + "'. It doesn't have to match exactly, but it should be similar. "
         "Keep repeating this process (sentence, function), until the user's voice is recognized. "
         "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
-        "You are equipped with a variety of tools, which you can use to perform various tasks. For example, you can play music on spotify for the user. Do not mention you are a text-based assistant. "
+        "You are equipped with a variety of tools, which you can use to perform various tasks. Do not mention you are a text-based assistant. "
         "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
+        "Before using a tool, you must first give a response to the user AND THEN call the correct tool or tools. "
         "You CANNOT call a function after giving a text response, so DO NOT say thing like 'Please hold on for a moment', instead ask the user whether they'd like you to continue. "
         "You are allowed to give opinions and thoughts to the user. Don't respond with lists of things, instead give a concise overview and ask the user if they'd like to hear more. If a list is needed, provide it more conversationally. "
         "When giving calendar events, you should give a very concise overview, and ask the user if they'd like to hear more. Don't just list them all out. "
@@ -140,6 +143,13 @@ messages = [
             "%Y-%m-%d %H:%M:%S")
     },
 ]
+
+# messages = [
+#     {
+#         "role": "system",
+#         "content": "Say 'This is a test', AND THEN call the bbc_news_briefing tool. ONLY use the tool after your initial response."
+#     }
+# ]
 
 store_conversation(1, messages)
 
@@ -402,6 +412,11 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "google_search": google_search,
             "bbc_news_briefing": download_bbc_news_summary,
             "send_to_phone": send_message_sync,
+            "volume_up": volume_up,
+            "volume_down": volume_down,
+            "save_note": save_note,
+            "retrieve_notes": retrieve_notes,
+            "edit_or_delete_notes": edit_or_delete_notes,
         }
 
         messages.append(
@@ -426,6 +441,11 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "google_search": "Searching the web...",
             "bbc_news_briefing": "Getting the latest news...",
             "send_to_phone": "Sending a message to your phone...",
+            "volume_up": "Increasing the volume...",
+            "volume_down": "Decreasing the volume...",
+            "save_note": "Saving your note...",
+            "retrieve_notes": "Retrieving your notes...",
+            "edit_or_delete_notes": "Editing your notes...",
         }
 
         multiple_tool_calls = len(tool_calls) > 1
@@ -436,9 +456,12 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             try:
                 function_args = json.loads(tool_call['function']['arguments'])
             except:
-                function_args = {''}
+                function_args = {}
             if function_name == "bbc_news_briefing":
                 bbc_news_thread = True
+            
+            if function_name in ["save_note", "edit_or_delete_notes", "retrieve_notes"]:
+                function_args["user"] = speaker
 
             # Print tool call information
             print(f"Tool call: {tool_call}")
@@ -501,8 +524,6 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
                         # Append the number to the previously processed sentence
                         string1 += completion
                         waiting_for_number_second_response = False
-                        # Continue with text-to-speech and rest of the processing
-                        # ...
 
                     elif not first_sentence_processed_second_response and any(
                             punctuation in completion for punctuation in ["!", ".", "?"]):
