@@ -1,9 +1,13 @@
-import os
-import discord
 import asyncio
+import discord
 from fuzzywuzzy import process
+import os
+
+# Global variable to store the result
+message_result = None
 
 async def send_message_to_user(username, text):
+    global message_result
     guild_id = 1187204974678130718
     token = os.environ.get('DISCORD_TOKEN')
 
@@ -29,15 +33,13 @@ async def send_message_to_user(username, text):
 
     @client.event
     async def on_ready():
-        result = await find_and_send_message()
-        print(result)
+        global message_result
+        message_result = await find_and_send_message()
         await client.close()
 
     await client.start(token)
 
 def send_message_sync(username, text):
+    global message_result
     asyncio.run(send_message_to_user(username, text))
-    return "Message sent."
-
-# Usage
-# send_message_sync("xeniox", "Hello, this is your message!")
+    return message_result
