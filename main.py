@@ -31,7 +31,7 @@ from calendar_utils import check_calendar, add_event_to_calendar
 from utils.home_assistant import toggle_entity
 from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device, play_spotify, \
     pause_spotify
-from utils.store_conversation import store_conversation
+from utils.store_conversation import store_conversation, check_conversation
 from pveagle_speaker_identification import enroll_user, determine_speaker
 from noise_reduction import reduce_noise_and_normalize
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
@@ -41,6 +41,7 @@ from utils.predict_intent import predict_intent
 from utils.send_to_discord import send_message_sync
 from utils.volume_control import volume_up, volume_down
 from utils.notes import save_note, retrieve_notes, edit_or_delete_notes
+from utils.initialise_conversation import initialize_conversation
 
 
 # Profiling
@@ -107,52 +108,12 @@ def stop_thinking_sound():
     # Clear the current playback reference
     current_playback = None
 
+if not check_conversation(1):
+    messages = initialize_conversation(1)
+    
+else: 
+    messages = check_conversation(1)
 
-def get_location():
-    api_token = os.getenv('IPINFO_TOKEN')
-    headers = {
-        'Authorization': 'Bearer ' + api_token
-    }
-    response = requests.get('https://ipinfo.io', headers=headers)
-    data = response.json()
-    return data.get('city', 'Unknown')
-
-
-city = get_location()
-
-messages = [
-    {
-        "role": "system",
-        "content": "You are Jarvis, a voice-based personal assistant currently located in " + city + " and based off the GPT-4 AI model. You are speaking to the user now. "
-        "The user that activated you is provded to you at the start of each message ('At [timestamp] [user] said:'), along with the date at time. Refer to them by their name. If the user is 'Unknown', then say you don't recognize them, however continue with the action if it is non-personal. "
-        "ONLY perform actions for verified users. DO NOT perform reminders or calendar management actions for 'Unknown' users. Some users require specific actions. For example, be sure to select the correct calendar/reminders/smart home control for the specific user mentioned. "
-        "You can enroll users using the function. However, BEFORE using this function you MUST give the user a sentence to say, AND ask their name. For example: 'Tell me the weather... [name]'. Insert this name into the correct field. This is to train the model to recognize the user's voice. "
-        "Make the sentence you give one that they will ask you, for example 'Tell me the weather in'" + city + "'. It doesn't have to match exactly, but it should be similar. "
-        "Keep repeating this process (sentence, function), until the user's voice is recognized. "
-        "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
-        "You are equipped with a variety of tools, which you can use to perform various tasks. Do not mention you are a text-based assistant. "
-        "You can send responses to the user's phone. For example, you can use this to send a summary of events from the calendar, a list of reminders or notes, or links to events/search results. Offer this option to the user. "
-        "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
-        "Before using a tool, you must first give a response to the user AND THEN call the correct tool or tools. "
-        "You CANNOT call a function after giving a text response, so DO NOT say thing like 'Please hold on for a moment', instead ask the user whether they'd like you to continue. "
-        "You are allowed to give opinions and thoughts to the user. Don't respond with lists of things, instead give a concise overview and ask the user if they'd like to hear more. If a list is needed, provide it more conversationally. "
-        "When giving calendar events, you should give a very concise overview, and ask the user if they'd like to hear more. Don't just list them all out. "
-        "ALWAYS check the calendar, weather, etc. before giving a response that includes this. Do NOT hallucinate or make up events without checking. "
-        "The date and time is provided at the beginning of the message. This indicates the current date and time, and is used to give you a reference point. "
-        "Use this as well to give a sense of time passing and time-contextual responses. "
-        "The current date and time is: " + datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S")
-    },
-]
-
-# messages = [
-#     {
-#         "role": "system",
-#         "content": "Say 'This is a test', AND THEN call the bbc_news_briefing tool. ONLY use the tool after your initial response."
-#     }
-# ]
-
-store_conversation(1, messages)
 
 # Load environment variables
 api_key = os.getenv("OPENAI_API_KEY")
