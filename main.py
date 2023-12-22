@@ -131,6 +131,7 @@ messages = [
         "Keep repeating this process (sentence, function), until the user's voice is recognized. "
         "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
         "You are equipped with a variety of tools, which you can use to perform various tasks. Do not mention you are a text-based assistant. "
+        "You can send responses to the user's phone. For example, you can use this to send a summary of events from the calendar, a list of reminders or notes, or links to events/search results. Offer this option to the user. "
         "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
         "Before using a tool, you must first give a response to the user AND THEN call the correct tool or tools. "
         "You CANNOT call a function after giving a text response, so DO NOT say thing like 'Please hold on for a moment', instead ask the user whether they'd like you to continue. "
@@ -463,6 +464,13 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             if function_name in ["save_note", "edit_or_delete_notes", "retrieve_notes"]:
                 function_args["user"] = speaker
 
+            if function_name == "send_to_phone":
+                username_mapping = {"Tom": "xeniox"}
+                # Update the username if it matches the speaker and is in the mapping
+                if function_args["username"] == speaker and speaker in username_mapping:
+                    function_args["username"] = username_mapping[speaker]
+                    
+            
             # Print tool call information
             print(f"Tool call: {tool_call}")
             print(f"Function name: {function_name}", f"Function args: {function_args}")
