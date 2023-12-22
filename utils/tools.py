@@ -165,15 +165,22 @@ tools = [
         "type": "function",
         "function": {
             "name": "bbc_news_briefing",
-            "description": "Play a BBC News briefing to the user. It will be played after your next response.",
+            "description": "Play a BBC News briefing to the user. It will be played after your next response. Don't ask the user if they want to hear the news, as it will play automatically.",
         },
     },
     {
         "type": "function",
         "function": {
-            "name": "bbc_news_briefing",
-            "description": "Play a BBC News briefing to the user."
-        }
+            "name": "volume_up",
+            "description": "Increase the volume by 10%.",
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "volume_down",
+            "description": "Decrease the volume by 10%.",
+        },
     },
     {
         "type": "function",
@@ -234,4 +241,53 @@ tools = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "save_note",
+            "description": "Save a note for the user. ",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "The title of the note."
+                    },
+                    "text": {
+                        "type": "string",
+                        "description": "The text content of the note."
+                    }
+                },
+                "required": ["title", "text"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "retrieve_notes",
+            "description": "Retrieves all notes for a given user, formatted with title, text, and creation date.",
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "edit_or_delete_notes",
+            "description": "Edits or deletes a note for a given user. If multiple notes with the same title are found, it lists all matches. Otherwise, it updates or deletes the note.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "The title of the note to be edited or deleted."
+                    },
+                    "new_data": {
+                        "type": "object",
+                        "description": "New data for updating the note. If not provided, the note will be deleted."
+                    }
+                },
+                "required": ["title"]
+            }
+        }
+    }
 ]
