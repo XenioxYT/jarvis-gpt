@@ -241,7 +241,8 @@ def predict_intent(text, nlp):
         "bbc_news_briefing": ["Tell me the news", "What's the news today", "News update, please"],
         "list_reminders": ["What are my reminders", "List my reminders for today"],
         "volume_down": ["Turn down the volume", "Lower the volume", "Volume lower, please"],
-        "volume_up": ["Turn up the volume", "Increase the volume", "Volume higher, please"]
+        "volume_up": ["Turn up the volume", "Increase the volume", "Volume higher, please"],
+        "retrieve_notes": ["What are my notes", "List my notes", "Show me my notes"]
     }
 
     # Initialize variables to store the best match
