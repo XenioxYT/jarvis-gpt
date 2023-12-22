@@ -607,11 +607,11 @@ def text_to_speech(text):
     # Use a British accent voice, for example "en-GB-Wavenet-B"
     voice = texttospeech.VoiceSelectionParams(
         language_code='en-GB',
-        name='en-GB-Neural2-B',  # You can choose a different British Wavenet voice if desired
+        name='en-GB-Neural2-B',
         # ssml_gender=texttospeech.SsmlVoiceGender.MALE
     )
 
-    # Use  audio encoding for high quality
+    # Use audio encoding for high quality
     audio_config = texttospeech.AudioConfig(
         audio_encoding=texttospeech.AudioEncoding.LINEAR16
     )
@@ -645,8 +645,7 @@ def text_to_speech(text):
     # Then, play the audio buffer using PyAudio
     # Define PyAudio stream callback for asynchronous playback
     def callback(in_data, frame_count, time_info, status):
-        data = audio_buffer.read(frame_count * 2)  # 2 bytes per sample for LINEAR16
-        return (data, pyaudio.paContinue)
+        return (audio_buffer.read(frame_count * 2), pyaudio.paContinue)
 
     # Initialize PyAudio and open a stream for playback
     p = pyaudio.PyAudio()
