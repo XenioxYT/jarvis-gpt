@@ -252,7 +252,7 @@ def enroll_user_handler(name):
     destination = f"./user_dataset_temp/{name}/{random_number}.wav"
     shutil.copy("./temp_cleaned_normalised.wav", destination)
 
-    audio_files = [f'./user_dataset_temp/{name}/{file}' for file in os.listdir(f'./user_dataset_temp/{name}')]
+    audio_files = [f'./user_dataset_temp/{name}/{file}' for file in os.listdir(f'./user_dataset_temp/{name}') if file.endswith('.wav')]
 
     return enroll_user(pv_access_key, audio_files, f"./user_models/{name}.pv")
 
