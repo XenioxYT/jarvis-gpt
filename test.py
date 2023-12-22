@@ -236,10 +236,12 @@ def predict_intent(text, nlp):
 
     # Define reference sentences for different intents
     ref_sentences = {
-        "control_lights": "Turn on the lights",
-        "control_lights": "Turn off the lights",
-        "bbc_news_briefing": "Tell me the news",
-        "list_reminders": "What are my reminders",
+        "control_lights_on": ["Turn on the lights", "Lights on", "Activate the lights"],
+        "control_lights_off": ["Turn off the lights", "Lights off", "Deactivate the lights"],
+        "bbc_news_briefing": ["Tell me the news", "What's the news today", "News update, please"],
+        "list_reminders": ["What are my reminders", "List my reminders for today"],
+        "volume_down": ["Turn down the volume", "Lower the volume", "Volume lower, please"],
+        "volume_up": ["Turn up the volume", "Increase the volume", "Volume higher, please"]
     }
 
     # Initialize variables to store the best match
@@ -261,9 +263,12 @@ def predict_intent(text, nlp):
     return None
 
 # Test the function
-# print(predict_intent("Can you turn on the lights?"))
-# print(predict_intent("can you turn the lights off?"))
-# print(predict_intent("What's the latest news today?"))
-# print(predict_intent("Show me my reminders for today"))
-# print(predict_intent("Tell me the news"))
-# print(predict_intent("what's the news"))
+print(predict_intent("Can you turn on the lights?"))
+print(predict_intent("can you turn the lights off?"))
+print(predict_intent("What's the latest news today?"))
+print(predict_intent("Show me my reminders for today"))
+print(predict_intent("Tell me the news"))
+print(predict_intent("what's the news"))
+print(predict_intent("Turn down the volume"))
+print(predict_intent("Turn up the volume"))
+print(predict_intent("can you turn the volume down"))
