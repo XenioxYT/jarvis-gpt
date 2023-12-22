@@ -20,11 +20,11 @@ tools = [
             },
         }
     },
-        {
+    {
         "type": "function",
         "function": {
             "name": "enroll_user",
-            "description": "DO NOT call the function at first. First, ask the user to say a sentence of 10 words, then ask for their name. For example: '[sentence] [name]'",
+            "description": "Make the sentence you give one that they will ask you, for example 'Tell me the weather in'. It doesn't have to match exactly, but it should be similar. Needs to be in the form [sentence] [name of user]",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -51,6 +51,23 @@ tools = [
                     }
                 },
                 "required": ["date"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "google_search",
+            "description": "Search Google for a given query and return the top results.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The query to search for.",
+                    }
+                },
+                "required": ["query"],
             },
         },
     },
@@ -140,17 +157,29 @@ tools = [
     {
         "type": "function",
         "function": {
-            "name": "list_unnotified_reminders",
+            "name": "list_reminders",
             "description": "List all reminders that have not yet been notified",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "dummy_variable": {
-                        "type": "string",
-                        "description": "This is a dummy variable to allow the function to be called without any parameters.",
-                    },
-                },
-            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "bbc_news_briefing",
+            "description": "Play a BBC News briefing to the user. It will be played after your next response. Don't ask the user if they want to hear the news, as it will play automatically.",
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "volume_up",
+            "description": "Increase the volume by 10%.",
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "volume_down",
+            "description": "Decrease the volume by 10%.",
         },
     },
     {
@@ -163,7 +192,7 @@ tools = [
                 "properties": {
                     "entity_id": {
                         "type": "string",
-                        "description": "The entity ID to toggle. These entities are: switch.desk_lamp_socket_1'"
+                        "description": "The entity ID to toggle. These entities are: light.dad_s_house_bedroom'"
                     },
                     "switch": {
                         "type": "boolean",
@@ -187,7 +216,86 @@ tools = [
                         "description": "The search term for the song, e.g., 'Shape of You - Ed Sheeran'."
                     },
                 },
+                "required": ["search_term"],
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "send_to_phone",
+            "description": "Send a message to the user's phone, for example links, calendar events or reminders. Link the user to their username. Format the message using markdown.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "description": "The username of the user to send the message to. Use the references: ['user' = 'username'], ['Tom' = 'xeniox']",
+                    },
+                    "text": {
+                        "type": "string",
+                        "description": "The text to send to the user's phone.",
+                    },
+                },
+                "required": ["username", "text"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "save_note",
+            "description": "Save a note for the user. ",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "The title of the note."
+                    },
+                    "text": {
+                        "type": "string",
+                        "description": "The text content of the note."
+                    }
+                },
+                "required": ["title", "text"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "retrieve_notes",
+            "description": "Retrieves all notes for a given user, formatted with title, text, and creation date.",
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "edit_or_delete_notes",
+            "description": "Edits or deletes a note for a given user. If multiple notes with the same title are found, it lists all matches. Otherwise, it updates or deletes the note based on the new title and text.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "The search title of the note to be edited or deleted."
+                    },
+                    "new_title": {
+                        "type": "string",
+                        "description": "The new title for the note. If not provided but new_text is, only the text will be updated. If neither is provided, the note will be deleted."
+                    },
+                    "new_text": {
+                        "type": "string",
+                        "description": "The new text for the note. If not provided but new_title is, only the title will be updated. If neither is provided, the note will be deleted."
+                    },
+                    "index": {
+                        "type": "integer",
+                        "description": "The index of the note to be edited or deleted if multiple notes with the same title are found."
+                    }
+                },
+                "required": ["title"]
+            }
+        }
+    }
 ]

@@ -1,9 +1,11 @@
 import os
 import requests
+
 access_token = os.getenv('HASS_TOKEN')
-home_assistant_url=os.getenv('HASS_URL')
+home_assistant_url = os.getenv('HASS_URL')
 SPOTIFY_URI = 'spotify:playlist:37i9dQZF1DWUBCiFp3lAyi'
 DEVICE_NAME = 'media_player.tom_s_room'
+
 
 def play_spotify_uri(spotify_uri):
     """
@@ -16,7 +18,7 @@ def play_spotify_uri(spotify_uri):
     """
     device_name = 'media_player.tom_s_room'
     token = os.getenv('HASS_TOKEN')
-    ha_url=os.getenv('HASS_URL')
+    ha_url = os.getenv('HASS_URL')
     # Headers for the HTTP request
     headers = {
         'Authorization': f'Bearer {token}',
@@ -42,6 +44,7 @@ def play_spotify_uri(spotify_uri):
     else:
         print('Failed to play Spotify track.')
 
+
 def search_spotify_song(search_term):
     """
     Play a Spotify track on a Google Home speaker using Spotcast in Home Assistant.
@@ -53,7 +56,7 @@ def search_spotify_song(search_term):
     """
     device_name = 'media_player.tom_s_room'
     token = os.getenv('HASS_TOKEN')
-    ha_url=os.getenv('HASS_URL')
+    ha_url = os.getenv('HASS_URL')
     # Headers for the HTTP request
     headers = {
         'Authorization': f'Bearer {token}',
@@ -80,7 +83,8 @@ def search_spotify_song(search_term):
     else:
         print('Failed to play Spotify track.')
         return "Failed to play " + search_term + " on Spotify."
-        
+
+
 # Example usage
 # search_spotify_song("is there someone else")
 
@@ -117,7 +121,8 @@ def toggle_spotify_playback(force_play=False):
         print('Spotify playback toggled.')
     else:
         print('Failed to toggle Spotify playback.')
-        
+
+
 def is_spotify_playing_on_device():
     """
     Check if Spotify is playing on a specific device in Home Assistant.
@@ -129,7 +134,7 @@ def is_spotify_playing_on_device():
     """
     device_name = 'media_player.tom_s_room'
     token = os.getenv('HASS_TOKEN')
-    ha_url=os.getenv('HASS_URL')
+    ha_url = os.getenv('HASS_URL')
     headers = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json',
@@ -146,7 +151,8 @@ def is_spotify_playing_on_device():
     else:
         print('Failed to retrieve the state of the Spotify player.')
         return False
-    
+
+
 def play_spotify():
     """
     Play Spotify on a specified media player in Home Assistant.
@@ -172,6 +178,7 @@ def play_spotify():
         print('Spotify playback started.')
     else:
         print('Failed to start Spotify playback.')
+
 
 def pause_spotify():
     """
