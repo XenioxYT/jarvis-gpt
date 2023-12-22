@@ -7,6 +7,7 @@ reminders.json
 user_dataset_temp/*
 user_models/*
 pretrained_models/*
+notes/*
 __pycache__/*
 __pycache__/calendar_utils.cpython-310.pyc
 utils/__pycache__/calendar.cpython-310.pyc
