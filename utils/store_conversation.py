@@ -70,3 +70,13 @@ def store_conversation(conversation_id, conversation, cursor=None, db_conn=None)
     values = (conversation_id, json.dumps(conversation))
     cursor.execute("REPLACE INTO conversations VALUES (?, ?)", values)
     db_conn.commit()
+
+def check_conversation(conversation_id):
+    db_conn = sqlite3.connect('conversations.db')
+    cursor = db_conn.cursor()
+    cursor.execute("SELECT conversation FROM conversations WHERE conversation_id = ?", (conversation_id,))
+    result = cursor.fetchone()
+    if result is None:
+        return None
+    else:
+        return result
