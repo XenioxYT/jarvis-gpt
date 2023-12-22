@@ -53,47 +53,52 @@ def search_notes(user, search_term):
             best_match = process.extractOne(search_term, titles, score_cutoff=75)
             if best_match:
                 matching_notes = [note for note in notes if note['title'] == best_match[0]]
-                return f"The matching notes for {user} are {matching_notes}"
+                return matching_notes
             else:
                 return []
     else:
         return []
 
-def edit_or_delete_notes(user, title, new_title=None, new_text=None):
+def edit_or_delete_notes(user, title, index=None, new_title=None, new_text=None):
     """
-    Edits or deletes a note for a given user. If there are multiple notes with the same title, it lists all matches.
-    If there's a single match, it updates or deletes the note based on the provided new_title and new_text.
+    Edits or deletes a note for a given user. If there are multiple notes with the same title, it allows selecting one based on the index.
+    If there's a single match or a specified index, it updates or deletes the note based on the provided new_title and new_text.
     If new_title and new_text are None, the note is deleted.
     """
-    # Function to search notes (assuming it's defined elsewhere)
-    def search_notes(user, search_term):
-        # Dummy implementation (Replace with the actual search logic)
-        return []
-
+    
     # Edit or delete notes for a given user
     matching_notes = search_notes(user, title)
     notes_file = f'./notes/{user}/notes.json'
 
     if len(matching_notes) > 1:
-        return "There are multiple matches:\n" + "\n".join([note['title'] for note in matching_notes])
+        if index is None or index < 0 or index >= len(matching_notes):
+            return f"There are multiple matches for {user}'s notes. Please specify an index to select a note:\n" + "\n".join([f"{i}: {note['title']}" for i, note in enumerate(matching_notes)])
+        else:
+            selected_note = matching_notes[index]
     elif len(matching_notes) == 1:
-        with open(notes_file, 'r+') as file:
-            notes = json.load(file)
-            for note in notes:
-                if note['title'] == matching_notes[0]['title']:
-                    if new_title is not None or new_text is not None:
-                        note['title'] = new_title if new_title is not None else note['title']
-                        note['text'] = new_text if new_text is not None else note['text']
-                    else:
-                        notes.remove(note)
-                        file.seek(0)
-                        file.truncate()
-                        json.dump(notes, file)
-                        return f"Note '{note['title']}' deleted successfully for {user}."
-
-            file.seek(0)
-            file.truncate()
-            json.dump(notes, file)
-            return f"Note '{note['title']}' updated successfully for {user}."
+        selected_note = matching_notes[0]
     else:
         return "No matching note found."
+
+    with open(notes_file, 'r+') as file:
+        notes = json.load(file)
+        for note in notes:
+            if note['title'] == selected_note['title']:
+                if new_title is not None or new_text is not None:
+                    note['title'] = new_title if new_title is not None else note['title']
+                    note['text'] = new_text if new_text is not None else note['text']
+                    file.seek(0)
+                    file.truncate()
+                    json.dump(notes, file)
+                    return f"Note '{note['title']}' updated successfully for {user}."
+                else:
+                    notes.remove(note)
+                    file.seek(0)
+                    file.truncate()
+                    json.dump(notes, file)
+                    return f"Note '{note['title']}' deleted successfully for {user}."
+
+    return "Note not found or no changes specified."
+
+    
+# print(edit_or_delete_notes(title="Test", new_title="Three", user="Tom"))
