@@ -19,7 +19,8 @@ def google_search(query):
     for item in res.get('items', []):
         title = item.get('title')
         snippet = item.get('snippet')
-        results.append(f"Title: {title}\nSnippet: {snippet}\n")
+        url = item.get('link')
+        results.append(f"Title: {title}\nSnippet: {snippet}\nLink: {url}\n")
 
     return '\n'.join(results)
 
