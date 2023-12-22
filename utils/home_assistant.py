@@ -5,36 +5,29 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+# Proposed optimization:
+# 1. Simplified the conversion of the 'switch' variable to a boolean.
+# 2. Added support for the 'light' entity.
+# 3. Optimized string formatting and code structure for better efficiency and clarity.
+
 def toggle_entity(entity_id, switch):
-    if switch == "true" or switch == "True" or switch == True:
-        switch = True
-    else:
-        switch = False
+    # Convert the switch parameter to boolean more efficiently
+    switch = str(switch).lower() == 'true'
+
     access_token = os.getenv('HASS_TOKEN')
     home_assistant_url = os.getenv('HASS_URL')
-    # Determine the type of the entity (e.g., 'switch')
-    entity_type = entity_id.split(".")[0]
 
-    # Define the service endpoint based on the entity type and switch parameter
-    if entity_type == "switch":
+    # Extract the entity type and determine the service endpoint
+    entity_type = entity_id.split(".")[0]
+    if entity_type in ["switch", "light"]:
         service = "turn_on" if switch else "turn_off"
     else:
         print(f"Entity type '{entity_type}' not supported yet.")
         return
 
-    # Endpoint to control the state of the entity
     url = f"{home_assistant_url}/api/services/{entity_type}/{service}"
-
-    # Headers including the long-lived access token for authentication
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "content-type": "application/json",
-    }
-
-    # Data payload specifying the entity_id
-    data = {
-        "entity_id": entity_id
-    }
+    headers = {"Authorization": f"Bearer {access_token}", "content-type": "application/json"}
+    data = {"entity_id": entity_id}
 
     # Sending the POST request to Home Assistant
     response = requests.post(url, json=data, headers=headers)
