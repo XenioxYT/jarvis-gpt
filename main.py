@@ -225,12 +225,28 @@ pa = pyaudio.PyAudio()
 
 
 def enroll_user_handler(name):
+    # Create the destination directory if it doesn't exist
+    os.makedirs(f'./user_dataset_temp/{name}', exist_ok=True)
+
+    # Check if the text file exists
+    counter_file = f"./user_dataset_temp/{name}/counter.txt"
+    if os.path.exists(counter_file):
+        with open(counter_file, 'r') as f:
+            count = int(f.read())
+        if count >= 8:
+            return "User already enrolled"
+        else:
+            count += 1
+    else:
+        count = 1
+
+    # Write the new count to the file
+    with open(counter_file, 'w') as f:
+        f.write(str(count))
+
     # Generate a random number
     random_number = random.randint(1, 1000)
     reduce_noise_and_normalize('./temp.wav')
-
-    # Create the destination directory if it doesn't exist
-    os.makedirs(f'./user_dataset_temp/{name}', exist_ok=True)
 
     # Copy and move the file
     destination = f"./user_dataset_temp/{name}/{random_number}.wav"
