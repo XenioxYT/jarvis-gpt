@@ -288,6 +288,10 @@ tools = [
                     "new_text": {
                         "type": "string",
                         "description": "The new text for the note. If not provided but new_title is, only the title will be updated. If neither is provided, the note will be deleted."
+                    },
+                    "index": {
+                        "type": "integer",
+                        "description": "The index of the note to be edited or deleted if multiple notes with the same title are found."
                     }
                 },
                 "required": ["title"]
