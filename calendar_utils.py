@@ -135,7 +135,7 @@ def add_event_to_calendar(title, start, end, location="None", description="None"
     try:
         created_event = service.events().insert(calendarId='primary', body=event).execute()
         print(f"Event created: {created_event.get('htmlLink')}")
-        return "Event created" + created_event.get('htmlLink') + "Title: " + title + "Start: " + start + "End: " + end + "Location: " + location + "Description: " + description
+        return "Event created" + created_event.get('htmlLink') + " Title: " + title + " Start: " + start + " End: " + end + " Location: " + location + " Description: " + description + " ID: " + created_event.get('id')
     except Exception as e:
         print(f"An error occurred when trying to add the event: {e}")
-        return None
+        return f"An error occurred when trying to add the event: {e}"
