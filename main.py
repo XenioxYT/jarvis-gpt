@@ -320,9 +320,9 @@ def split_first_sentence(text):
         return text, ''
 
 
-def text_to_speech_thread(text):
-    # This function will run in a separate thread
-    text_to_speech(text)
+# def text_to_speech_thread(text):
+#     # This function will run in a separate thread
+#     text_to_speech(text)
 
 # Function to get response from ChatGPT, making any necessary tool calls
 def get_chatgpt_response(text, function=False, function_name=None, cursor=None, db_conn=None, speaker="Unknown"):
@@ -390,7 +390,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
                         else:
                             if string1:
                                 # Start the text-to-speech function in a separate thread
-                                tts_thread = threading.Thread(target=text_to_speech_thread, args=(string1,))
+                                tts_thread = threading.Thread(target=text_to_speech, args=(string1, ))
                                 tts_thread.start()
                                 completion = rest  # Reset completion to contain only the remaining text
                                 first_sentence_processed = True
@@ -420,7 +420,6 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
         available_functions = {
             "get_weather_data": get_weather_data,
             "check_calendar": check_calendar,
-            # "google_search": google_search,
             "set_reminder": add_reminder,
             "edit_reminder": edit_reminder,
             "list_reminders": list_unnotified_reminders,
@@ -501,7 +500,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             # Start the TTS thread
             
             if tts_multiple_spoken == False:
-                tts_thread_function = threading.Thread(target=text_to_speech_thread, args=(tts_message,))
+                tts_thread_function = threading.Thread(target=text_to_speech, args=(tts_message, ))
                 tts_thread_function.start()
                 tts_multiple_spoken = True
 
@@ -562,7 +561,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
                             else:
                                 if string1:
                                     # Start the text-to-speech function in a separate thread
-                                    tts_thread = threading.Thread(target=text_to_speech_thread, args=(string1,))
+                                    tts_thread = threading.Thread(target=text_to_speech, args=(string1, ))
                                     tts_thread.start()
                                     completion = rest  # Reset completion to contain only the remaining text
                                     first_sentence_processed_second_response = True
@@ -604,7 +603,6 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
 def text_to_speech(text):
     synthesis_input = texttospeech.SynthesisInput(text=text)
 
-    # Use a British accent voice, for example "en-GB-Wavenet-B"
     voice = texttospeech.VoiceSelectionParams(
         language_code='en-GB',
         name='en-GB-Neural2-B',
