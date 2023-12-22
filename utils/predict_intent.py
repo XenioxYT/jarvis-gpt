@@ -14,8 +14,8 @@ def predict_intent(text, nlp):
     # }
     
     ref_sentences = {
-        "control_switch": "Turn on the lights",
-        "control_switch": "Turn off the lights",
+        # "control_switch": "Turn on the lights",
+        # "control_switch": "Turn off the lights",
         "bbc_news_briefing": "Tell me the news",
         "list_reminders": "What are my reminders",
         "volume_down": "Turn down the volume",
