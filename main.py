@@ -431,7 +431,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
         tts_messages = {
             "play_song_on_spotify": "Connecting to your speakers...",
             "set_reminder": "Accessing reminders...",
-            "add_event_to_calendar": lambda args: f"Adding {args['title']} to your calendar...",
+            "add_event_to_calendar": "Adding event to your calendar...",
             "get_weather_data": "Getting live weather data...",
             "check_calendar": "Checking your calendar...",
             "control_switch": "Controling your smart home...",
