@@ -49,7 +49,7 @@ def trim_conversation_to_fit_limit(conversation, token_limit, conversation_id):
 
 
 def store_conversation(conversation_id, conversation, cursor=None, db_conn=None):
-    token_limit = 7000
+    token_limit = 5000
 
     # Ensure the system message is always the first message in the conversation
     ensure_system_message_on_top(conversation)
