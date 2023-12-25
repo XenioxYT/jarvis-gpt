@@ -5,76 +5,67 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 import os
 import json
-import threading
-import time
-
 from utils.send_to_discord import send_message_sync
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-# example usage for send_message_sync(username, message)
 
-# def authenticate_google_calendar_api():
-#     creds = None
-#     # The file token.json stores the user's access and refresh tokens, and is
-#     # created automatically when the authorization flow completes for the first
-#     # time.
-#     if os.path.exists('token.json'):
-#         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-#     # If there are no (valid) credentials available, let the user log in.
-#     if not creds or not creds.valid:
-#         if creds and creds.expired and creds.refresh_token:
-#             creds.refresh(Request())
-#         else:
-#             flow = InstalledAppFlow.from_client_secrets_file(
-#                 'credentials.json', SCOPES)
-#             creds = flow.run_local_server(port=0)
-#         # Save the credentials for the next run
-#         with open('token.json', 'w') as token:
-#             token.write(creds.to_json())
-    
-#     service = build('calendar', 'v3', credentials=creds)
-#     return service
-
-
-def authenticate_google_calendar_api():
+def check_token_status():
+    """
+    Checks the status of the user's token.
+    Returns a tuple: (token_is_active, re_auth_link)
+    - token_is_active: Boolean indicating if the token is active.
+    - re_auth_link: String containing the re-authentication link or None if not needed.
+    """
     creds = None
+    re_auth_link = None
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-        if not creds.valid and creds.expired and creds.refresh_token:
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            re_auth_link = flow.authorization_url()[0]
 
-    if not creds:
-        redirect_uri = 'https://calendar.xeniox.tv:49152'
+        return False, re_auth_link
+
+    return True, None
+
+def authenticate_google_calendar_api():
+    token_is_active, re_auth_link = check_token_status()
+    if not token_is_active:
+        if re_auth_link:
+            return re_auth_link
+
+        # The authorization flow must be completed to obtain new credentials
         flow = InstalledAppFlow.from_client_secrets_file(
-            'credentials.json', SCOPES, redirect_uri=redirect_uri)
-        auth_url, state = flow.authorization_url(prompt='consent', access_type='offline')
+            'credentials.json', SCOPES)
+        creds = flow.run_local_server(port=0)
 
-        # Send the URL to the user
-        send_message_sync("xeniox", f"Please visit this URL to authorize this application: {auth_url}")
+        # Save the credentials for the next run
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
 
-        # Wait for the user to complete authentication
-        timeout = time.time() + 7200  # 2 hours timeout
-        while not os.path.exists('token.json') and time.time() < timeout:
-            time.sleep(5)  # Check every 5 seconds
+    else:
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
 
-        if not os.path.exists('token.json'):
-            print("Authentication process timed out or failed.")
-            return False
-
-    creds = Credentials.from_authorized_user_file('token.json', SCOPES)
     service = build('calendar', 'v3', credentials=creds)
     return service
 
-def complete_auth_flow(flow, state):
-    # This will open a local server in the browser for the user to complete authentication
-    creds = flow.run_local_server(port=49152, state=state)
-    with open('token.json', 'w') as token:
-        token.write(creds.to_json())
-        
+
 def check_calendar(date):
     """Check the calendar for events on a given date or date range."""
     service = authenticate_google_calendar_api()
+    # check if the service is a URL using re
+    # if it is, return the URL
+    # else, continue with the rest of the function
+    if "http" in service:
+        send_message_sync("xeniox", "You need to re-auth your google calendar connection. Please visit the following link to do so: " + service)
+        return "The user has been sent a link to their phone to re-auth their google calendar connection: " + service
+    
     date_range = date.split(" - ")
     start_date_str = date_range[0]
     end_date_str = date_range[1] if len(date_range) > 1 else start_date_str
@@ -97,7 +88,9 @@ def check_calendar(date):
                 "location": event.get("location", "No location specified"),
                 "start": event["start"].get("dateTime", event["start"].get("date")),
                 "end": event["end"].get("dateTime", event["end"].get("date")),
-                "description": event.get("description", "No description provided")
+                "description": event.get("description", "No description provided"),
+                "id": event["id"] if "id" in event else "None",
+                "url": event["htmlLink"] if "htmlLink" in event else "None",
             } 
             for event in events
         ]
@@ -110,11 +103,12 @@ def check_calendar(date):
     
 def manage_google_calendar(operation, event_data=None, event_id=None, date=None):
     service = authenticate_google_calendar_api()
-
+    if "http" in service:
+        return "The user has been sent a link to their phone to re-auth their google calendar connection: " + service
     if operation == 'add':
         event = service.events().insert(calendarId='primary', body=event_data).execute()
         print(f"Event created: {event.get('htmlLink')}")
-        return event.get('id')
+        return "Event created: " + event.get('htmlLink') + " " + event.get('id')
 
     elif operation == 'remove':
         if event_id:
@@ -151,6 +145,9 @@ def add_event_to_calendar(title, start, end, location="None", description="None"
     :return: The event ID of the created event.
     """
     service = authenticate_google_calendar_api()
+    if "http" in service:
+        send_message_sync("The user has been sent a link to their phone to re-auth their google calendar connection: " + service)
+        return "The user has been sent a link to their phone to re-auth their google calendar connection: " + service
 
     # Construct the event dictionary
     event = {
@@ -182,4 +179,4 @@ def add_event_to_calendar(title, start, end, location="None", description="None"
         print(f"An error occurred when trying to add the event: {e}")
         return f"An error occurred when trying to add the event: {e}"
     
-print(check_calendar("2021-05-01 - 2021-05-31"))
+print(check_calendar("2021-03-01 - 2021-03-31"))
