@@ -2,6 +2,9 @@ import asyncio
 import discord
 from fuzzywuzzy import process
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Global variable to store the result
 message_result = None
@@ -9,7 +12,7 @@ message_result = None
 async def send_message_to_user(username, text):
     global message_result
     guild_id = 1187204974678130718
-    token = os.environ.get('DISCORD_TOKEN')
+    token = os.getenv('DISCORD_TOKEN')
 
     intents = discord.Intents.default()
     intents.members = True
