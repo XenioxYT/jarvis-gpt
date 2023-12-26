@@ -1,68 +1,59 @@
-common_trigrams = [
-    # Smart Home Control
-    ('turn', 'off', 'lights'),
-    ('adjust', 'thermostat', 'to'),
-    ('play', 'next', 'song'),
+# Map function names to their TTS messages
+from main import enroll_user_handler
+from calendar_utils import check_calendar, add_event_to_calendar
 
-    # Reminders and Alarms
-    ('set', 'new', 'reminder'),
-    ('cancel', 'current', 'alarm'),
-    ('change', 'reminder', 'time'),
+from news.bbc_news import download_bbc_news_summary
 
-    # Information Queries
-    ('what', 'time', 'is'),
-    ('find', 'recipe', 'for'),
-    ('how', 'to', 'make'),
+from utils.google_search import google_search
+from utils.notes import edit_or_delete_notes, retrieve_notes, save_note
+from utils.send_to_discord import send_message_sync
+from utils.volume_control import volume_down, volume_up
+from utils.weather import get_weather_data
+from utils.reminders import add_reminder, edit_reminder, list_unnotified_reminders
+from utils.home_assistant import toggle_entity
+from utils.spotify import search_spotify_song
 
-    # Weather and News
-    ('current', 'weather', 'forecast'),
-    ('latest', 'sports', 'news'),
-    ('update', 'on', 'traffic'),
+tts_messages = {
+    "play_song_on_spotify": "Connecting to your speakers...",
+    "set_reminder": "Accessing reminders...",
+    "add_event_to_calendar": "Adding event to your calendar...",
+    "get_weather_data": "Getting live weather data...",
+    "check_calendar": "Checking your calendar...",
+    "control_switch": "Controling your smart home...",
+    "edit_reminder": "Editing your reminders...",
+    "list_reminders": "Getting your reminders...",
+    "enroll_user": "Learning your voice...",
+    "google_search": "Searching the web...",
+    "bbc_news_briefing": "Getting the latest news...",
+    "send_to_phone": "Sending a message to your phone...",
+    "volume_up": "Increasing the volume...",
+    "volume_down": "Decreasing the volume...",
+    "save_note": "Saving your note...",
+    "retrieve_notes": "Retrieving your notes...",
+    "edit_or_delete_notes": "Editing your notes...",
+}
 
-    # Entertainment
-    ('suggest', 'good', 'movies'),
-    ('play', 'some', 'music'),
-    ('find', 'popular', 'podcasts'),
+username_mapping = {
+    "Tom": "xeniox",
+    "Russell": "russell68"
+}
 
-    # Navigation and Travel
-    ('nearest', 'gas', 'station'),
-    ('best', 'restaurants', 'nearby'),
-    ('public', 'transport', 'schedule'),
-
-    # Personal Assistant Tasks
-    ('send', 'quick', 'email'),
-    ('organize', 'my', 'schedule'),
-    ('book', 'flight', 'tickets'),
-
-    # General Conversational Trigrams
-    ('that', 'sounds', 'great'),
-    ('sure', 'go', 'ahead'),
-    ('not', 'right', 'now'),
-    ('maybe', 'later'),
-    ('that', 'helps', 'alot'),
-    ('could', 'you', 'repeat'),
-    ('did', 'not', 'understand'),
-    ('please', 'clarify', 'that'),
-    ('just', 'wondering'),
-    ('by', 'the', 'way'),
-    ('let', 'me', 'think')
-]
-
-common_bigrams = [
-    # Affirmative Responses
-    ('yes', 'please'),
-    ('thank', 'you'),
-    ('much', 'appreciated'),
-
-    # Negative Responses
-    ('no', 'thanks')
-]
-
-# You are an AI designed to class intent of a sentace for a voice assistant. You class whether the sentence makes sense regarding current context and language understanding. DO NOT give any other output other than JSON. Here is how you should format your output:
-# {
-#     "followup": true
-# }
-# where true is if the output is a follow up to the previous response from the assistant. This can be anything from a follow up question to a "Thank you", expressing gratitude for the answer, so long as it makes sense in the context. The assistant reply is: "Currently in Newcastle, it's 4.5 degrees and cloudy. Can I help you with anything else?"
-
-# And the user input:
-# "Thanks"
+available_functions = {
+    "get_weather_data": get_weather_data,
+    "check_calendar": check_calendar,
+    "set_reminder": add_reminder,
+    "edit_reminder": edit_reminder,
+    "list_reminders": list_unnotified_reminders,
+    "add_event_to_calendar": add_event_to_calendar,
+    "control_switch": toggle_entity,
+    "play_song_on_spotify": search_spotify_song,
+    "enroll_user": enroll_user_handler,
+    "google_search": google_search,
+    "bbc_news_briefing": download_bbc_news_summary,
+    "send_to_phone": send_message_sync,
+    "volume_up": volume_up,
+    "volume_down": volume_down,
+    "save_note": save_note,
+    "retrieve_notes": retrieve_notes,
+    "edit_or_delete_notes": edit_or_delete_notes,
+}
