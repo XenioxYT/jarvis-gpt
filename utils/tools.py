@@ -48,9 +48,13 @@ tools = [
                     "date": {
                         "type": "string",
                         "description": "The date to check, e.g., 2021-10-31. You can also give a range, e.g., 2021-10-31 - 2021-11-01",
+                    },
+                    "username": {
+                        "type": "string",
+                        "description": "The user to check the calendar for. At the beginning of the message.",
                     }
                 },
-                "required": ["date"],
+                "required": ["date", "username"],
             },
         },
     },
@@ -101,8 +105,12 @@ tools = [
                         "type": "string",
                         "description": "The end date and time of the event in ISO format, e.g., '2023-07-21T16:00:00-07:00'.",
                     },
+                    "username": {
+                        "type": "string",
+                        "description": "The user to add the event for.",
+                    }
                 },
-                "required": ["summary", "start", "end"],
+                "required": ["summary", "start", "end", "username"],
             },
         },
     },
