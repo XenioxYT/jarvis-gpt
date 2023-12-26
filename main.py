@@ -327,11 +327,21 @@ def split_first_sentence(text):
 # Function to get response from ChatGPT, making any necessary tool calls
 def get_chatgpt_response(text, function=False, function_name=None, cursor=None, db_conn=None, speaker="Unknown"):
     
+    global bbc_news_thread
+    completion = ""
+    full_completion = ""
+    full_completion_2 = ""
+    first_sentence_processed = False
+    first_sentence_processed_second_response = False
+    waiting_for_number = False
+    waiting_for_number_second_response = False
+    tool_calls = []
+    
     if not speaker == "Unknown":
         enroll_user_thread = threading.Thread(target=enroll_user_handler, args=(speaker,))
         enroll_user_thread.start()
     
-    global bbc_news_thread
+    
     if function:
         messages.append(
             {
@@ -350,14 +360,7 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
 
     intent = predict_intent(text, nlp)
     print(intent)
-    completion = ""
-    full_completion = ""
-    full_completion_2 = ""
-    first_sentence_processed = False
-    first_sentence_processed_second_response = False
-    waiting_for_number = False
-    waiting_for_number_second_response = False
-    tool_calls = []
+
     if intent == None:
 
         # Send the initial message and the available tool to the model
