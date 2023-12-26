@@ -465,6 +465,11 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             "retrieve_notes": "Retrieving your notes...",
             "edit_or_delete_notes": "Editing your notes...",
         }
+        
+        username_mapping = {
+            "Tom": "xeniox",
+            "Russell": "russell68"
+        }
 
         multiple_tool_calls = len(tool_calls) > 1
         tts_multiple_spoken = False
@@ -481,8 +486,8 @@ def get_chatgpt_response(text, function=False, function_name=None, cursor=None, 
             if function_name in ["save_note", "edit_or_delete_notes", "retrieve_notes"]:
                 function_args["user"] = speaker
 
-            if function_name == "send_to_phone":
-                username_mapping = {"Tom": "xeniox"}
+            if function_name in ["add_event_to_calendar", "check_calendar", "send_to_phone"]:
+                
                 # Update the username if it matches the speaker and is in the mapping
                 if function_args["username"] == speaker and speaker in username_mapping:
                     function_args["username"] = username_mapping[speaker]
