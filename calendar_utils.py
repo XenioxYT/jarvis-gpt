@@ -8,73 +8,55 @@ import json
 import threading
 import time
 
+
 from utils.send_to_discord import send_message_sync
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-# example usage for send_message_sync(username, message)
 
-# def authenticate_google_calendar_api():
-#     creds = None
-#     # The file token.json stores the user's access and refresh tokens, and is
-#     # created automatically when the authorization flow completes for the first
-#     # time.
-#     if os.path.exists('token.json'):
-#         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-#     # If there are no (valid) credentials available, let the user log in.
-#     if not creds or not creds.valid:
-#         if creds and creds.expired and creds.refresh_token:
-#             creds.refresh(Request())
-#         else:
-#             flow = InstalledAppFlow.from_client_secrets_file(
-#                 'credentials.json', SCOPES)
-#             creds = flow.run_local_server(port=0)
-#         # Save the credentials for the next run
-#         with open('token.json', 'w') as token:
-#             token.write(creds.to_json())
-    
-#     service = build('calendar', 'v3', credentials=creds)
-#     return service
-
-
-def authenticate_google_calendar_api():
+def authenticate_google_calendar_api(username):
     creds = None
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if os.path.exists(f'./tokens/{username}/token.json'):
+        creds = Credentials.from_authorized_user_file(f'./tokens/{username}/token.json', SCOPES)
         if not creds.valid and creds.expired and creds.refresh_token:
             creds.refresh(Request())
+            # creds = None
 
     if not creds:
-        redirect_uri = 'https://calendar.xeniox.tv:49152'
+        redirect_uri = f'https://calendar.xeniox.tv/oauth2callback'
+        state = f'user_{username}'  # Simple example, can be more complex/encoded
         flow = InstalledAppFlow.from_client_secrets_file(
             'credentials.json', SCOPES, redirect_uri=redirect_uri)
-        auth_url, state = flow.authorization_url(prompt='consent', access_type='offline')
+        auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline', state=state)
 
         # Send the URL to the user
-        send_message_sync("xeniox", f"Please visit this URL to authorize this application: {auth_url}")
+        send_message_sync(username, f"Please visit this URL to authorize this application: {auth_url}")
 
         # Wait for the user to complete authentication
-        timeout = time.time() + 7200  # 2 hours timeout
-        while not os.path.exists('token.json') and time.time() < timeout:
-            time.sleep(5)  # Check every 5 seconds
+        # timeout = time.time() + 7200  # 2 hours timeout
+        # while not os.path.exists('./tokens/{user}/token.json') and time.time() < timeout:
+        #     time.sleep(5)  # Check every 5 seconds
 
-        if not os.path.exists('token.json'):
+        if not os.path.exists(f'./tokens/{username}/token.json'):
             print("Authentication process timed out or failed.")
             return False
 
-    creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    service = build('calendar', 'v3', credentials=creds)
-    return service
+        else:
+            creds = Credentials.from_authorized_user_file(f'./tokens/{username}/token.json', SCOPES)
+            service = build('calendar', 'v3', credentials=creds)
+            return service
+    else:
+        service = build('calendar', 'v3', credentials=creds)
+        return service
 
-def complete_auth_flow(flow, state):
-    # This will open a local server in the browser for the user to complete authentication
-    creds = flow.run_local_server(port=49152, state=state)
-    with open('token.json', 'w') as token:
-        token.write(creds.to_json())
         
-def check_calendar(date):
+def check_calendar(date, username):
     """Check the calendar for events on a given date or date range."""
-    service = authenticate_google_calendar_api()
+    
+    if service == False:
+        return "You have sent the user a message with the authentication link. Please wait for them to authenticate and try again."
+    service = authenticate_google_calendar_api(username)
+    
     date_range = date.split(" - ")
     start_date_str = date_range[0]
     end_date_str = date_range[1] if len(date_range) > 1 else start_date_str
@@ -108,8 +90,9 @@ def check_calendar(date):
         print(f"An error occurred: {e}")
         return json.dumps({"date": date, "error": str(e), "events": []})
     
-def manage_google_calendar(operation, event_data=None, event_id=None, date=None):
-    service = authenticate_google_calendar_api()
+
+def manage_google_calendar(operation, username, event_data=None, event_id=None, date=None):
+    service = authenticate_google_calendar_api(username)
 
     if operation == 'add':
         event = service.events().insert(calendarId='primary', body=event_data).execute()
@@ -139,7 +122,7 @@ def manage_google_calendar(operation, event_data=None, event_id=None, date=None)
         else:
             print("No date provided to list events")
             
-def add_event_to_calendar(title, start, end, location="None", description="None"):
+def add_event_to_calendar(title, start, end, username, location="None", description="None"):
     """
     Adds an event to the Google Calendar with the specified details.
 
@@ -150,7 +133,10 @@ def add_event_to_calendar(title, start, end, location="None", description="None"
     :param description: A description of the event (optional).
     :return: The event ID of the created event.
     """
-    service = authenticate_google_calendar_api()
+    service = authenticate_google_calendar_api(username)
+    
+    if service == False:
+        return "You have sent the user a message with the authentication link. Please wait for them to authenticate and try again."
 
     # Construct the event dictionary
     event = {
@@ -182,4 +168,4 @@ def add_event_to_calendar(title, start, end, location="None", description="None"
         print(f"An error occurred when trying to add the event: {e}")
         return f"An error occurred when trying to add the event: {e}"
     
-print(check_calendar("2021-05-01 - 2021-05-31"))
+# print(add_event_to_calendar("Test Event", "2021-07-21T15:00:00-07:00", "2021-07-21T16:00:00-07:00", "xeniox"))
