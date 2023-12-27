@@ -1,5 +1,5 @@
 # Map function names to their TTS messages
-from main import enroll_user_handler
+# from main import enroll_user_handler
 from calendar_utils import check_calendar, add_event_to_calendar
 
 from news.bbc_news import download_bbc_news_summary
@@ -47,7 +47,7 @@ available_functions = {
     "add_event_to_calendar": add_event_to_calendar,
     "control_switch": toggle_entity,
     "play_song_on_spotify": search_spotify_song,
-    "enroll_user": enroll_user_handler,
+    # "enroll_user": enroll_user_handler,
     "google_search": google_search,
     "bbc_news_briefing": download_bbc_news_summary,
     "send_to_phone": send_message_sync,
