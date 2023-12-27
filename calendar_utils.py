@@ -54,7 +54,7 @@ def check_calendar(date, username):
     """Check the calendar for events on a given date or date range."""
     
     if service == False:
-        return "You have sent the user a message with the authentication link. Please wait for them to authenticate and try again."
+        return "You have sent the user a message to their phone with the authentication link. Please wait for them to authenticate and try again."
     service = authenticate_google_calendar_api(username)
     
     date_range = date.split(" - ")
@@ -163,7 +163,7 @@ def add_event_to_calendar(title, start, end, username, location="None", descript
     try:
         created_event = service.events().insert(calendarId='primary', body=event).execute()
         print(f"Event created: {created_event.get('htmlLink')}")
-        return "Event created" + created_event.get('htmlLink') + " Title: " + title + " Start: " + start + " End: " + end + " Location: " + location + " Description: " + description + " ID: " + created_event.get('id')
+        return "Event created " + created_event.get('htmlLink') + " Title: " + title + " Start: " + start + " End: " + end + " Location: " + location + " Description: " + description + " ID: " + created_event.get('id')
     except Exception as e:
         print(f"An error occurred when trying to add the event: {e}")
         return f"An error occurred when trying to add the event: {e}"
