@@ -24,7 +24,7 @@ def authenticate_google_calendar_api(username):
     else:
         session_id = str(uuid.uuid4())
         state = f'{session_id}_user_{username}'
-        redirect_uri = 'https://calendar.xeniox.tv/oauth2callback'
+        redirect_uri = 'https://auth.xeniox.tv/oauth2callback'
         flow = InstalledAppFlow.from_client_secrets_file(
             'credentials.json', SCOPES, redirect_uri=redirect_uri)
         auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline', state=state)
@@ -44,7 +44,7 @@ def authenticate_google_calendar_api(username):
 def poll_for_token(session_id, username, timeout=7200, interval=5):
     start_time = time.time()
     while time.time() - start_time < timeout:
-        response = requests.get(f'https://calendar.xeniox.tv/download_token/{session_id}')
+        response = requests.get(f'https://auth.xeniox.tv/download_token/{session_id}')
         if response.status_code == 200:
             token_data = response.json().get('token')
             save_token_locally(username, token_data)
