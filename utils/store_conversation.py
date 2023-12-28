@@ -1,6 +1,7 @@
 import json
 import sqlite3
 import tiktoken
+from utils.strings import messages
 
 db_conn = sqlite3.connect('conversations.db')
 db_conn.execute("""
@@ -80,3 +81,35 @@ def check_conversation(conversation_id):
         return None
     else:
         return result
+    
+def initiate_conversation_if_not_exists(conversation_id, cursor=None, db_conn=None):
+    
+    if cursor is None:
+        db_conn = sqlite3.connect('conversations.db')
+        cursor = db_conn.cursor()
+    else:
+        cursor = cursor
+        db_conn = db_conn
+    # Check if the conversation exists in the database
+    result = check_conversation(conversation_id)
+
+    # If the conversation does not exist or the conversation content is empty, initiate a new conversation
+    if result is None or not result[0]:
+        # Here, you can replace 'New conversation initiated' with the actual conversation initiation logic
+        store_conversation(conversation_id, messages)
+    else:
+        print(f'Conversation with id {conversation_id} already exists and has content.')
+        
+def get_conversation(conversation_id):
+    # Check if the conversation exists in the database
+    result = check_conversation(conversation_id)
+
+    # If the conversation does not exist or the conversation content is empty, initiate a new conversation
+    if result is None or not result[0]:
+        initiate_conversation_if_not_exists(conversation_id)
+        messages = []
+    else:
+        # Retrieve the conversation from the database and store it in the messages variable
+        messages = json.loads(result[0])
+
+    return messages
