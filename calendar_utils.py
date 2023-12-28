@@ -7,8 +7,8 @@ import os
 import json
 import threading
 import time
-
-
+import uuid
+import requests
 from utils.send_to_discord import send_message_sync
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
@@ -16,46 +16,57 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 def authenticate_google_calendar_api(username):
     creds = None
-    if os.path.exists(f'./tokens/{username}/token.json'):
-        creds = Credentials.from_authorized_user_file(f'./tokens/{username}/token.json', SCOPES)
+    token_path = f'./tokens/{username}/token.json'
+    if os.path.exists(token_path):
+        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
         if not creds.valid and creds.expired and creds.refresh_token:
             creds.refresh(Request())
-            # creds = None
-
-    if not creds:
-        redirect_uri = f'https://calendar.xeniox.tv/oauth2callback'
-        state = f'user_{username}'  # Simple example, can be more complex/encoded
+    else:
+        session_id = str(uuid.uuid4())
+        state = f'{session_id}_user_{username}'
+        redirect_uri = 'https://calendar.xeniox.tv/oauth2callback'
         flow = InstalledAppFlow.from_client_secrets_file(
             'credentials.json', SCOPES, redirect_uri=redirect_uri)
         auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline', state=state)
 
-        # Send the URL to the user
         send_message_sync(username, f"Please visit this URL to authorize this application: {auth_url}")
 
-        # Wait for the user to complete authentication
-        # timeout = time.time() + 7200  # 2 hours timeout
-        # while not os.path.exists('./tokens/{user}/token.json') and time.time() < timeout:
-        #     time.sleep(5)  # Check every 5 seconds
+        # Start the polling in a separate thread
+        polling_thread = threading.Thread(target=poll_for_token, args=(session_id, username))
+        polling_thread.start()
 
-        if not os.path.exists(f'./tokens/{username}/token.json'):
-            print("Authentication process timed out or failed.")
-            return False
-
-        else:
-            creds = Credentials.from_authorized_user_file(f'./tokens/{username}/token.json', SCOPES)
-            service = build('calendar', 'v3', credentials=creds)
-            return service
-    else:
+    if creds:
         service = build('calendar', 'v3', credentials=creds)
         return service
+    else:
+        return False
+
+def poll_for_token(session_id, username, timeout=7200, interval=5):
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        response = requests.get(f'https://calendar.xeniox.tv/download_token/{session_id}')
+        if response.status_code == 200:
+            token_data = response.json().get('token')
+            save_token_locally(username, token_data)
+            print("Token successfully retrieved and saved.")
+            return
+        time.sleep(interval)
+    print("Authentication process timed out or failed.")
+
+def save_token_locally(username, token_data):
+    user_token_dir = f'./tokens/{username}'
+    os.makedirs(user_token_dir, exist_ok=True)
+    with open(f'{user_token_dir}/token.json', 'w') as token_file:
+        token_file.write(token_data)
 
         
 def check_calendar(date, username):
     """Check the calendar for events on a given date or date range."""
     
+    service = authenticate_google_calendar_api(username)
     if service == False:
         return "You have sent the user a message to their phone with the authentication link. Please wait for them to authenticate and try again."
-    service = authenticate_google_calendar_api(username)
+    
     
     date_range = date.split(" - ")
     start_date_str = date_range[0]
@@ -168,4 +179,4 @@ def add_event_to_calendar(title, start, end, username, location="None", descript
         print(f"An error occurred when trying to add the event: {e}")
         return f"An error occurred when trying to add the event: {e}"
     
-# print(add_event_to_calendar("Test Event", "2021-07-21T15:00:00-07:00", "2021-07-21T16:00:00-07:00", "xeniox"))
+print(add_event_to_calendar("Test Event", "2021-07-21T15:00:00-07:00", "2021-07-21T16:00:00-07:00", "xeniox"))
