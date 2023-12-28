@@ -6,7 +6,7 @@ import json
 app = Flask(__name__)
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
-REDIRECT_URI = 'https://calendar.xeniox.tv/oauth2callback'
+REDIRECT_URI = 'https://auth.xeniox.tv/oauth2callback'
 
 @app.route('/oauth2callback')
 def oauth2callback():
