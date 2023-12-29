@@ -6,20 +6,20 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from utilities.calendar_utils import add_event_to_calendar, check_calendar
 from news.bbc_news import download_bbc_news_summary
-from utils.home_assistant import toggle_entity
-from utils.notes import edit_or_delete_notes, retrieve_notes, save_note
-from utils.predict_intent import predict_intent
-from utils.google_search import google_search
-from utils.send_to_discord import send_message_sync
-from utils.spotify import search_spotify_song
+from device_control.home_assistant import toggle_entity
+from user_notes.notes import edit_or_delete_notes, retrieve_notes, save_note
+from utilities.predict_intent import predict_intent
+from utilities.google_search import google_search
+from device_control.send_to_discord import send_message_sync
+from utilities.spotify import search_spotify_song
 # from utils.tools import tools
-from utils.strings import tts_messages, username_mapping
+from utilities.strings import tts_messages, username_mapping
 import os
-from utils.reminders import add_reminder, edit_reminder, list_unnotified_reminders
-from utils.store_conversation import store_conversation, get_conversation
-from utils.volume_control import volume_down, volume_up
-from utils.weather import get_weather_data
-from utils.tools import tools
+from reminders.reminders import add_reminder, edit_reminder, list_unnotified_reminders
+from conversation_database_handling.store_conversation import store_conversation, get_conversation
+from device_control.volume_control import volume_down, volume_up
+from utilities.weather import get_weather_data
+from utilities.tools import tools
 from audio_processing.text_to_speech import text_to_speech
 # from main import text_to_speech
 
