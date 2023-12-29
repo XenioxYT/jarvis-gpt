@@ -197,28 +197,6 @@ def transcribe(queue, filename='temp.wav', server_url='https://api.xeniox.tv/tra
     queue.put(transcription)
 
 
-
-def split_first_sentence(text):
-    # Look for a period, exclamation mark, or question mark that might indicate the end of a sentence
-    match = re.search(r'[.!?]', text)
-    if match:
-        # Check if the match is likely the end of a sentence
-        index = match.start()
-        possible_end = text[:index + 1]
-        remainder = text[index + 1:]
-
-        # Look ahead to see if the next character is a digit (part of a decimal) or an uppercase letter (start of a new sentence)
-        next_char_match = re.search(r'\s*([A-Z]|\d)', remainder)
-        if next_char_match and next_char_match.group(1).isupper():
-            # It's an uppercase letter, so likely a new sentence
-            return possible_end.strip(), remainder.strip()
-        else:
-            # It's a digit or there's no immediate uppercase letter, so likely not the end of a sentence
-            return text, ''
-    else:
-        return text, ''
-
-
 def main():
     audio_stream = pa.open(
         rate=16000,
