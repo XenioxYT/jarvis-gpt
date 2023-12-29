@@ -75,6 +75,6 @@ def convert_and_play_mp3(path_to_mp3, stop_event):
     stop_event.clear()
 
 
-download_bbc_news_summary()
-stop_event = threading.Event()
-convert_and_play_mp3('bbc_news_summary.mp3', stop_event)
+# download_bbc_news_summary()
+# stop_event = threading.Event()
+# convert_and_play_mp3('bbc_news_summary.mp3', stop_event)
