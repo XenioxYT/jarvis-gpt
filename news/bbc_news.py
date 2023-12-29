@@ -13,46 +13,13 @@ import time
 import numpy as np
 
 def download_bbc_news_summary():
-    # Set up Chrome options
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Ensure GUI is off
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-
     # Set the directory for downloading files
     download_dir = os.getcwd()  # Get the current working directory
-    prefs = {"download.default_directory": download_dir,
-             "download.prompt_for_download": False,
-             "download.directory_upgrade": True,
-             "safebrowsing.enabled": True}
-    chrome_options.add_experimental_option("prefs", prefs)
 
-    # Set up the Selenium WebDriver
-    driver = webdriver.Chrome(options=chrome_options)
-
-    try:
-        # Open the BBC News Summary page
-        driver.get('https://www.bbc.co.uk/programmes/p002vsn1/episodes/player')
-
-        # Wait for the page to load and the list of episodes to appear
-        latest_episode = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, '.programme__titles a'))
-        )
-
-        # Click on the latest episode
-        latest_episode.click()
-
-        # Wait for the new page to load and the download link to appear
-        download_link = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'a[data-bbc-title="cta_download"]'))
-        )
-
-        # Get the URL for the higher quality download
-        download_url = download_link.get_attribute('href')
-
-        # If the URL is relative, prepend the domain to it
-        if not download_url.startswith('https:') or download_url.startswith('http:'):
-            download_url = 'https:' + download_url
+    # Get the download URL from the Flask API
+    response = requests.get('http://192.168.1.157:9445/download-bbc-news-summary')
+    if response.status_code == 200:
+        download_url = response.json().get('download_url')
 
         # Use Python requests to download the file
         response = requests.get(download_url)
@@ -60,10 +27,9 @@ def download_bbc_news_summary():
         # Save the file to the desired location
         with open(os.path.join(download_dir, 'bbc_news_summary.mp3'), 'wb') as file:
             file.write(response.content)
-    finally:
-        # Close the WebDriver
-        driver.quit()
         return "Downloaded BBC News Summary. It will play after your response. If the user would like to interrupt the playback, they can say your name (however, do not mention your name)."
+    else:
+        return "Unable to retrieve the download URL"
 
 def convert_and_play_mp3(path_to_mp3, stop_event):
     global current_playback
@@ -108,5 +74,7 @@ def convert_and_play_mp3(path_to_mp3, stop_event):
     # Clear the stop event for the next playback
     stop_event.clear()
 
+
+# download_bbc_news_summary()
 # stop_event = threading.Event()
 # convert_and_play_mp3('bbc_news_summary.mp3', stop_event)
