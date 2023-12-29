@@ -27,7 +27,7 @@ from utils.reminders import load_reminders, save_reminders
 from utils.spotify import toggle_spotify_playback
 from pveagle_speaker_identification import enroll_user, determine_speaker
 from noise_reduction import reduce_noise_and_normalize
-# from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from news.bbc_news import convert_and_play_mp3
 from testing import generate_response as get_chatgpt_response
 from utils.store_conversation import get_conversation, store_conversation
@@ -232,7 +232,6 @@ def transcribe(queue, filename='temp.wav', pipeline_model=pipeline_model):
     queue.put(transciption)
 
 
-
 def split_first_sentence(text):
     # Look for a period, exclamation mark, or question mark that might indicate the end of a sentence
     match = re.search(r'[.!?]', text)
@@ -351,9 +350,11 @@ def main():
             print(command)
             user = user_handler_queue.get()
             print(user)
-            response = get_chatgpt_response(command, speaker=str(user))
+            response, tts_thread = get_chatgpt_response(command, speaker=str(user))
             if spotify_was_playing:
                 toggle_spotify_playback()
+            if tts_thread and tts_thread.is_alive():
+                tts_thread.join()
             text_to_speech(response)
             global bbc_news_thread
             stop_event = threading.Event()
