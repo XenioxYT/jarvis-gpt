@@ -179,4 +179,4 @@ def add_event_to_calendar(title, start, end, username, location="None", descript
         print(f"An error occurred when trying to add the event: {e}")
         return f"An error occurred when trying to add the event: {e}"
     
-print(add_event_to_calendar("Test Event", "2021-07-21T15:00:00-07:00", "2021-07-21T16:00:00-07:00", "xeniox"))
+# print(add_event_to_calendar("Test Event", "2021-07-21T15:00:00-07:00", "2021-07-21T16:00:00-07:00", "xeniox"))
