@@ -4,12 +4,16 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from flask_apscheduler import APScheduler
 import os
 import requests
 
 app = Flask(__name__)
+scheduler = APScheduler()
+download_url = None
 
 def download_bbc_news_summary():
+    global download_url
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
@@ -23,7 +27,6 @@ def download_bbc_news_summary():
     chrome_options.add_experimental_option("prefs", prefs)
 
     driver = webdriver.Chrome(options=chrome_options)
-    download_url = None
 
     try:
         driver.get('https://www.bbc.co.uk/programmes/p002vsn1/episodes/player')
@@ -40,15 +43,19 @@ def download_bbc_news_summary():
 
     finally:
         driver.quit()
-        return download_url
+
+def scheduled_task():
+    download_bbc_news_summary()
 
 @app.route('/download-bbc-news-summary', methods=['GET'])
 def download_bbc_news_summary_api():
-    download_url = download_bbc_news_summary()
+    global download_url
     if download_url:
         return jsonify({"download_url": download_url})
     else:
         return jsonify({"error": "Unable to retrieve the download URL"}), 500
 
 if __name__ == '__main__':
+    scheduler.add_job(id='Scheduled task', func=scheduled_task, trigger='interval', minutes=30)
+    scheduler.start()
     app.run(debug=True)
