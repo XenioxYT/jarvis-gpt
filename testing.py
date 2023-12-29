@@ -127,7 +127,7 @@ def process_tool_call(tool_call, speaker, username_mapping, available_functions,
         else:
             store_conversation(1, messages)
 
-    return messages, tts_multiple_spoken
+    return messages, tts_multiple_spoken, tts_thread_function
 
 
 def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=None):
@@ -223,11 +223,13 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
             tts_multiple_spoken = False
             
             for tool_call in tool_calls:
-                messages, tts_multiple_spoken = process_tool_call(tool_call, speaker, username_mapping, available_functions, tts_messages, multiple_tool_calls, tts_multiple_spoken, messages, cursor, db_conn)
+                messages, tts_multiple_spoken, tts_thread_function = process_tool_call(tool_call, speaker, username_mapping, available_functions, tts_messages, multiple_tool_calls, tts_multiple_spoken, messages, cursor, db_conn)
             
             if finish_reason == "tool_calls" and full_completion:
                 messages.append({"role": "assistant","content": full_completion})
                 if completion:
+                    if tts_thread_function and tts_thread_function.is_alive():
+                        tts_thread_function.join()
                     tts_thread = threading.Thread(target=text_to_speech, args=(completion, ))
                     tts_thread.start()
 
@@ -235,28 +237,25 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
                 completion = ""
                 continue
             
-        if completion != "":
+        if completion:
             messages.append({
                 "role": "assistant",
                 "content": full_completion
             })
         
         if finish_reason == "stop" and len(tool_calls) == 0:
-            try:
-                if tts_thread.is_alive():
-                    tts_thread.join()
-            except Exception as e:
-                print (e)
+            if tts_thread and tts_thread.is_alive():
+                tts_thread.join()
             store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
             return completion, tts_thread
             break
         
 
-response, tts_thread = generate_response(input_message="Can you edit the second note with more detailed weather information please?", speaker="Tom")
-print(response)
-try:
-    if tts_thread.is_alive():
-        tts_thread.join()
-except Exception as e:
-    print(e)
-text_to_speech(response)
+# response, tts_thread = generate_response(input_message="Can you edit the second note with more detailed weather information please?", speaker="Tom")
+# print(response)
+# try:
+#     if tts_thread.is_alive():
+#         tts_thread.join()
+# except Exception as e:
+#     print(e)
+# text_to_speech(response)
