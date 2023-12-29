@@ -112,7 +112,6 @@ def text_to_speech(text):
     p.terminate()
 
 
-
 def split_first_sentence(text):
     # Look for a period, exclamation mark, or question mark that might indicate the end of a sentence
     match = re.search(r'[.!?]', text)
@@ -306,16 +305,11 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
             for tool_call in tool_calls:
                 messages, tts_multiple_spoken = process_tool_call(tool_call, speaker, username_mapping, available_functions, tts_messages, multiple_tool_calls, tts_multiple_spoken, messages, cursor, db_conn)
             
-            if finish_reason == "tool_calls":
-                if full_completion != "":
-                    messages.append({
-                        "role": "assistant",
-                        "content": full_completion
-                    })
-                    if completion != "":
-                        # Start the TTS thread
-                        tts_thread = threading.Thread(target=text_to_speech, args=(completion, ))
-                        tts_thread.start()
+            if finish_reason == "tool_calls" and full_completion:
+                messages.append({"role": "assistant","content": full_completion})
+                if completion:
+                    tts_thread = threading.Thread(target=text_to_speech, args=(completion, ))
+                    tts_thread.start()
 
                 full_completion = ""
                 completion = ""
@@ -337,9 +331,8 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
             return completion, tts_thread
             break
         
-        
 
-response, tts_thread = generate_response(input_message="Send a message to my phone with the current weather", speaker="Tom")
+response, tts_thread = generate_response(input_message="Can you give me a weather update for next week, send it to my phone, and add relevant information to my notes?", speaker="Tom")
 print(response)
 try:
     if tts_thread.is_alive():
