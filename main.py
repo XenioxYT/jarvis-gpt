@@ -21,28 +21,17 @@ import io
 import datetime
 import simpleaudio as sa
 from queue import Queue
-import spacy
 
 # imports for the tools
-from utils.tools import tools
-from utils.reminders import add_reminder, edit_reminder, list_unnotified_reminders, load_reminders, save_reminders
-from utils.weather import get_weather_data
-from calendar_utils import check_calendar, add_event_to_calendar
-from utils.home_assistant import toggle_entity
-from utils.spotify import search_spotify_song, toggle_spotify_playback, is_spotify_playing_on_device, play_spotify, \
-    pause_spotify
-from utils.store_conversation import store_conversation, check_conversation
+from utils.reminders import load_reminders, save_reminders
+from utils.spotify import toggle_spotify_playback
 from pveagle_speaker_identification import enroll_user, determine_speaker
 from noise_reduction import reduce_noise_and_normalize
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
-from utils.google_search import google_search
-from news.bbc_news import download_bbc_news_summary, convert_and_play_mp3
-from utils.predict_intent import predict_intent
-from utils.send_to_discord import send_message_sync
-from utils.volume_control import volume_up, volume_down
-from utils.notes import save_note, retrieve_notes, edit_or_delete_notes
-from utils.initialise_conversation import initialize_conversation
-from utils.strings import tts_messages, username_mapping, available_functions
+# from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+from news.bbc_news import convert_and_play_mp3
+from testing import generate_response as get_chatgpt_response
+from utils.store_conversation import get_conversation, store_conversation
+from text_to_speech import text_to_speech
 
 
 # Profiling
@@ -69,14 +58,6 @@ thinking_sound_stop_event = threading.Event()
 current_playback = None
 bbc_news_thread = False
 
-try:
-    spacy.prefer_gpu()
-    nlp = spacy.load("en_core_web_lg")
-except OSError:
-    print("Downloading language model for the spaCy POS tagger")
-    from spacy.cli import download
-    download("en_core_web_lg")
-    nlp = spacy.load("en_core_web_lg")
 
 def play_sound(sound_file, loop=False):
     global current_playback
@@ -108,49 +89,6 @@ def stop_thinking_sound():
 
     # Clear the current playback reference
     current_playback = None
-
-# if not check_conversation(1):
-#     messages = initialize_conversation(1)
-    
-# else: 
-#     messages = check_conversation(1)
-
-def get_location():
-    api_token = os.getenv('IPINFO_TOKEN')
-    headers = {
-        'Authorization': 'Bearer ' + api_token
-    }
-    response = requests.get('https://ipinfo.io', headers=headers)
-    data = response.json()
-    return data.get('city', 'Unknown')
-
-
-city = get_location()
-
-messages = [
-    {
-        "role": "system",
-        "content": "You are Jarvis, a voice-based personal assistant currently located in " + city + " and based off the GPT-4 AI model. You are speaking to the user now. "
-        "The user that activated you is provded to you at the start of each message ('At [timestamp] [user] said:'), along with the date at time. Refer to them by their name. "
-        "ONLY perform actions for verified users. DO NOT perform reminders or calendar management actions for 'Unknown' users. Some users require specific actions. For example, be sure to select the correct calendar/reminders/smart home control for the specific user mentioned. However, you can perform general tasks for the user. "
-        "You can enroll users using the function. However, BEFORE using this function you MUST give the user a sentence to say, AND ask their name. For example: 'Tell me the weather... [name]'. Insert this name into the correct field. This is to train the model to recognize the user's voice. "
-        "Make the sentence you give one that they will ask you, for example 'Tell me the weather in'" + city + "'. It doesn't have to match exactly, but it should be similar. "
-        "Keep repeating this process (sentence, function), until the user's voice is recognized. "
-        "You are a voice assistant, so keep responses short and concise, but maintain all the important information. Remember that some words may be spelled incorrectly due to speech-to-text errors, so keep this in mind when responding. "
-        "You are equipped with a variety of tools, which you can use to perform various tasks. Do not mention you are a text-based assistant. "
-        "You can send responses to the user's phone. For example, you can use this to send a summary of events from the calendar, a list of reminders or notes, or links to events/search results. Offer this option to the user. "
-        "Since you are a voice assistant, you must remember to not include visual things, like text formatting, as this will not play well with TTS. "
-        "Before using a tool, you must first give a response to the user AND THEN call the correct tool or tools. "
-        "You CANNOT call a function after giving a text response, so DO NOT say thing like 'Please hold on for a moment', instead ask the user whether they'd like you to continue. "
-        "You are allowed to give opinions and thoughts to the user. Don't respond with lists of things, instead give a concise overview and ask the user if they'd like to hear more. If a list is needed, provide it more conversationally. "
-        "When giving calendar events, you should give a very concise overview, and ask the user if they'd like to hear more. Don't just list them all out. "
-        "ALWAYS check the calendar, weather, etc. before giving a response that includes this. Do NOT hallucinate or make up events without checking. "
-        "The date and time is provided at the beginning of the message. This indicates the current date and time, and is used to give you a reference point. "
-        "Use this as well to give a sense of time passing and time-contextual responses. "
-        "The current date and time is: " + datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S")
-    },
-]
 
 
 # Load environment variables
@@ -187,9 +125,8 @@ pipeline_model = pipeline(
     torch_dtype=torch_dtype,
     device=device,
 )
-
-# koala = pvkoala.create(access_key=pv_access_key)
-# cheetah = pvcheetah.create(access_key=pv_access_key, enable_automatic_punctuation=True)
+# Initialize PyAudio
+pa = pyaudio.PyAudio()
 
 
 def check_reminders(cursor=None, db_conn=None):
@@ -219,10 +156,6 @@ def reminder_daemon():
         check_reminders(cursor=c, db_conn=db_conn)
         db_conn.close()
         time.sleep(30)  # Wait for one minute before checking again
-
-
-# Initialize PyAudio
-pa = pyaudio.PyAudio()
 
 
 def enroll_user_handler(name):
@@ -319,310 +252,6 @@ def split_first_sentence(text):
             return text, ''
     else:
         return text, ''
-
-
-# def text_to_speech_thread(text):
-#     # This function will run in a separate thread
-#     text_to_speech(text)
-
-# Function to get response from ChatGPT, making any necessary tool calls
-def get_chatgpt_response(text, function=False, function_name=None, cursor=None, db_conn=None, speaker="Unknown"):
-    
-    global bbc_news_thread
-    completion = ""
-    full_completion = ""
-    full_completion_2 = ""
-    first_sentence_processed = False
-    first_sentence_processed_second_response = False
-    waiting_for_number = False
-    waiting_for_number_second_response = False
-    tool_calls = []
-    
-    if not speaker == "Unknown":
-        enroll_user_thread = threading.Thread(target=enroll_user_handler, args=(speaker,))
-        enroll_user_thread.start()
-    
-    
-    if function:
-        messages.append(
-            {
-                "role": "function",
-                "name": function_name,
-                "content": text,
-            }
-        )
-    timestamp = datetime.datetime.now().strftime("%H:%M on %a %d %B %Y")
-
-    messages.append({"role": "user", "content": f"At {timestamp} {speaker} said: {text}"})
-    if cursor:
-        store_conversation(1, messages, cursor, db_conn)
-    else:
-        store_conversation(1, messages)
-
-    intent = predict_intent(text, nlp)
-    print(intent)
-
-    if intent == None:
-
-        # Send the initial message and the available tool to the model
-        response = oai_client.chat.completions.create(
-            model="gpt-4-1106-preview",
-            messages=messages,
-            tools=tools,
-            stream=True,
-        )
-
-        for chunk in response:
-            delta = chunk.choices[0].delta
-            if delta.content or delta.content == '':
-                completion += chunk.choices[0].delta.content
-                # print(completion)
-                full_completion += chunk.choices[0].delta.content
-
-                if waiting_for_number and completion[0].isdigit():
-                    # Append the number to the previously processed sentence
-                    string1 += completion
-                    waiting_for_number = False
-
-                elif not first_sentence_processed and any(punctuation in completion for punctuation in ["!", ".", "?"]):
-                    if not re.search(r'\d+\.\d+', completion):
-                        string1, rest = split_first_sentence(completion)
-
-                        # Check if string1 ends with a pattern like "number."
-                        if re.search(r'\d\.$', string1):
-                            waiting_for_number = True
-                        else:
-                            if string1:
-                                # Start the text-to-speech function in a separate thread
-                                tts_thread = threading.Thread(target=text_to_speech, args=(string1, ))
-                                tts_thread.start()
-                                completion = rest  # Reset completion to contain only the remaining text
-                                first_sentence_processed = True
-
-            if chunk.choices[0].delta.tool_calls:
-                tcchunklist = delta.tool_calls
-                for tcchunk in tcchunklist:
-                    if len(tool_calls) <= tcchunk.index:
-                        tool_calls.append({"id": "", "type": "function", "function": {"name": "", "arguments": ""}})
-                    tc = tool_calls[tcchunk.index]
-
-                    if tcchunk.id:
-                        tc["id"] += tcchunk.id
-                        # print(tc["id"])
-                    if tcchunk.function.name:
-                        tc["function"]["name"] += tcchunk.function.name
-                        # print(tc["function"]["name"])
-                    if tcchunk.function.arguments:
-                        tc["function"]["arguments"] += tcchunk.function.arguments
-                        # print(tc["function"]["arguments"])
-    else: 
-        tool_calls.append({"id": "", "type": "function", "function": {"name": intent, "arguments": ""}})
-        
-    if tool_calls:
-
-        messages.append(
-            {
-                "role": "function",
-                "name": "tool_calls",
-                "content": str(tool_calls),
-            }
-        )
-
-        multiple_tool_calls = len(tool_calls) > 1
-        tts_multiple_spoken = False
-
-        for tool_call in tool_calls:
-            function_name = tool_call['function']['name']
-            try:
-                function_args = json.loads(tool_call['function']['arguments'])
-            except:
-                function_args = {}
-            if function_name == "bbc_news_briefing":
-                bbc_news_thread = True
-            
-            if function_name in ["save_note", "edit_or_delete_notes", "retrieve_notes"]:
-                function_args["user"] = speaker
-
-            if function_name in ["add_event_to_calendar", "check_calendar", "send_to_phone"]:
-                
-                # Update the username if it matches the speaker and is in the mapping
-                if function_args["username"] == speaker and speaker in username_mapping:
-                    function_args["username"] = username_mapping[speaker]
-                    
-            
-            # Print tool call information
-            print(f"Tool call: {tool_call}")
-            print(f"Function name: {function_name}", f"Function args: {function_args}")
-
-            # Determine the TTS message based on the function name and whether multiple tools are called
-            tts_message = tts_messages.get(function_name, "Connecting to the internet")
-            if multiple_tool_calls:
-                tts_message = "Accessing multiple tools..."
-
-            # Start the TTS thread
-            
-            if tts_multiple_spoken == False:
-                tts_thread_function = threading.Thread(target=text_to_speech, args=(tts_message, ))
-                tts_thread_function.start()
-                tts_multiple_spoken = True
-
-            # Execute the function if available and store the response
-            if function_name in available_functions:
-                function_response = available_functions[function_name](**function_args)
-                print(function_response)
-
-                # Send the function response back to the model and store the conversation
-                messages.append({
-                    "role": "function",
-                    "name": function_name,
-                    "content": function_response,
-                })
-                store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
-
-        try:
-            second_response = oai_client.chat.completions.create(
-                model="gpt-4-1106-preview",
-                messages=messages,
-                stream=True,
-            )
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            second_response = oai_client.chat.completions.create(
-                model="gpt-4-1106-preview",
-                messages=messages,
-                stream=True,
-            )
-        if second_response:
-            store_conversation(1, messages)
-            completion = ""
-            for chunk in second_response:
-                delta = chunk.choices[0].delta
-                if delta.content or delta.content == '':
-                    completion += chunk.choices[0].delta.content
-                    # print(completion)
-                    full_completion_2 += chunk.choices[0].delta.content
-                    try:
-                        if tts_thread_function.is_alive():
-                            tts_thread_function.join()
-                    except:
-                        pass
-
-                    if waiting_for_number_second_response and completion[0].isdigit():
-                        # Append the number to the previously processed sentence
-                        string1 += completion
-                        waiting_for_number_second_response = False
-
-                    elif not first_sentence_processed_second_response and any(
-                            punctuation in completion for punctuation in ["!", ".", "?"]):
-                        if not re.search(r'\d+\.\d+', completion):
-                            string1, rest = split_first_sentence(completion)
-
-                            # Check if string1 ends with a pattern like "number."
-                            if re.search(r'\d\.$', string1):
-                                waiting_for_number_second_response = True
-                            else:
-                                if string1:
-                                    # Start the text-to-speech function in a separate thread
-                                    tts_thread = threading.Thread(target=text_to_speech, args=(string1, ))
-                                    tts_thread.start()
-                                    completion = rest  # Reset completion to contain only the remaining text
-                                    first_sentence_processed_second_response = True
-            messages.append(
-                {
-                    "role": "assistant",
-                    "content": full_completion_2,
-                }
-            )
-            store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
-            # Assume that we return the final response text after the tool call handling
-            try:
-                if tts_thread.is_alive():
-                    tts_thread.join()
-            except:
-                pass
-            return completion
-    else:
-        messages.append(
-            {
-                "role": "assistant",
-                "content": full_completion,
-            }
-        )
-        if cursor:
-            store_conversation(1, messages, cursor, db_conn)
-        else:
-            store_conversation(1, messages)
-        # Return the direct response text when no tool calls are needed
-        try:
-            if tts_thread.is_alive():
-                tts_thread.join()
-        except:
-            pass
-        return completion
-
-
-# Function to convert text to speech using Google Cloud TTS
-def text_to_speech(text):
-    synthesis_input = texttospeech.SynthesisInput(text=text)
-
-    voice = texttospeech.VoiceSelectionParams(
-        language_code='en-GB',
-        name='en-GB-Neural2-B',
-        # ssml_gender=texttospeech.SsmlVoiceGender.MALE
-    )
-
-    # Use audio encoding for high quality
-    audio_config = texttospeech.AudioConfig(
-        audio_encoding=texttospeech.AudioEncoding.LINEAR16
-    )
-
-    # Perform the Text-to-Speech request on the text input with the selected voice parameters and audio file type
-    response = client.synthesize_speech(
-        input=synthesis_input,
-        voice=voice,
-        audio_config=audio_config
-    )
-
-    fade_in_duration = 0.2  # Duration of the fade-in effect in seconds
-    # Convert the audio content to a numpy array and make it writable
-    audio_data = np.frombuffer(response.audio_content, dtype=np.int16).copy()
-    fade_in_samples = int(fade_in_duration * 24000)  # Number of samples over which to apply the fade-in
-    fade_in_curve = np.linspace(0, 1, fade_in_samples, dtype=np.float64)
-
-    # Apply the fade-in effect
-    try:
-        for i in range(fade_in_samples):
-            audio_data[i] = np.int16(float(audio_data[i]) * fade_in_curve[i])
-    except IndexError:
-        pass
-
-    # Convert the audio data back to bytes
-    modified_audio_content = audio_data.tobytes()
-
-    # First, save the modified audio to a buffer
-    audio_buffer = io.BytesIO(modified_audio_content)
-
-    # Then, play the audio buffer using PyAudio
-    # Define PyAudio stream callback for asynchronous playback
-    def callback(in_data, frame_count, time_info, status):
-        return (audio_buffer.read(frame_count * 2), pyaudio.paContinue)
-
-    # Initialize PyAudio and open a stream for playback
-    p = pyaudio.PyAudio()
-    stream = p.open(format=p.get_format_from_width(2),
-                    channels=1,
-                    rate=24000,  # Ensure this matches the sample rate from the TTS response
-                    output=True,
-                    stream_callback=callback)
-
-    # Start the playback stream and wait for it to finish
-    stream.start_stream()
-    while stream.is_active():
-        time.sleep(0.1)  # Pause in the loop to reduce CPU usage
-    stream.stop_stream()
-    stream.close()
-    audio_buffer.close()
-    p.terminate()
 
 
 def main():
@@ -740,12 +369,14 @@ def main():
                         stop_event.set()  # If wake word detected, signal to stop TTS playback
                         bbc_news_thread = False
                         text_to_speech("Stopped playback of BBC News Summary.")
+                        messages = get_conversation(1)
                         messages.append(
                             {
                                 "role": "assistant",
                                 "content": "Stopped playback of BBC News Summary.",
                             }
                         )
+                        store_conversation(1, messages)
                         bbc_news_thread = False
                         break
                 news_thread.join()  # Ensure TTS thread is finished before restarting the loop
