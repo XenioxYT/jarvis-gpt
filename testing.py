@@ -4,7 +4,7 @@ import re
 import threading
 from openai import OpenAI
 from dotenv import load_dotenv
-from calendar_utils import add_event_to_calendar, check_calendar
+from utilities.calendar_utils import add_event_to_calendar, check_calendar
 from news.bbc_news import download_bbc_news_summary
 from utils.home_assistant import toggle_entity
 from utils.notes import edit_or_delete_notes, retrieve_notes, save_note
@@ -20,7 +20,7 @@ from utils.store_conversation import store_conversation, get_conversation
 from utils.volume_control import volume_down, volume_up
 from utils.weather import get_weather_data
 from utils.tools import tools
-from text_to_speech import text_to_speech
+from audio_processing.text_to_speech import text_to_speech
 # from main import text_to_speech
 
 load_dotenv()

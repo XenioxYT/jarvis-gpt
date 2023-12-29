@@ -2,7 +2,7 @@ import os
 import json
 from difflib import get_close_matches
 
-REMINDERS_DB_FILE = 'reminders.json'
+REMINDERS_DB_FILE = './reminders.json'
 
 
 def list_unnotified_reminders(display_reminders=False):

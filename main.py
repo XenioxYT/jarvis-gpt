@@ -23,14 +23,14 @@ import simpleaudio as sa
 from queue import Queue
 
 # imports for the tools
-from utils.reminders import load_reminders, save_reminders
-from utils.spotify import toggle_spotify_playback
-from pveagle_speaker_identification import enroll_user, determine_speaker
-from noise_reduction import reduce_noise_and_normalize
+from reminders.reminders import load_reminders, save_reminders
+from utilities.spotify import toggle_spotify_playback
+from audio_processing.pveagle_speaker_identification import enroll_user, determine_speaker
+from audio_processing.noise_reduction import reduce_noise_and_normalize
 from news.bbc_news import convert_and_play_mp3
 from testing import generate_response as get_chatgpt_response
-from utils.store_conversation import get_conversation, store_conversation
-from text_to_speech import text_to_speech
+from conversation_database_handling.store_conversation import get_conversation, store_conversation
+from audio_processing.text_to_speech import text_to_speech
 
 load_dotenv()
 
@@ -91,7 +91,7 @@ client = texttospeech.TextToSpeechClient()
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-REMINDERS_DB_FILE = 'reminders.json'
+REMINDERS_DB_FILE = './reminders/reminders.json'
 
 porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
 
@@ -121,7 +121,7 @@ def check_reminders(cursor=None, db_conn=None):
 
 def reminder_daemon():
     while True:
-        db_conn = sqlite3.connect('conversations.db')
+        db_conn = sqlite3.connect('./conversation_database_handling/conversations.db')
         c = db_conn.cursor()
         check_reminders(cursor=c, db_conn=db_conn)
         db_conn.close()
@@ -150,11 +150,11 @@ def enroll_user_handler(name):
 
     # Generate a random number
     random_number = random.randint(1, 1000)
-    reduce_noise_and_normalize('./temp.wav')
+    reduce_noise_and_normalize('./audio_processing/temp.wav')
 
     # Copy and move the file
     destination = f"./user_dataset_temp/{name}/{random_number}.wav"
-    shutil.copy("./temp_cleaned_normalised.wav", destination)
+    shutil.copy("./audio_processing/temp_cleaned_normalised.wav", destination)
 
     audio_files = [f'./user_dataset_temp/{name}/{file}' for file in os.listdir(f'./user_dataset_temp/{name}') if file.endswith('.wav')]
 
@@ -168,7 +168,7 @@ def determine_user_handler(queue):
         result = "Unknown"
         queue.put(result)
         return "Unknown"
-    input_profile_paths = [f'./user_models/{name}' for name in os.listdir('./user_models/')]
+    input_profile_paths = [f'../user_models/{name}' for name in os.listdir('./user_models/')]
     audio_path = './temp_cleaned_normalised.wav'
     result = determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths,
                                test_audio_path=audio_path)
@@ -177,7 +177,7 @@ def determine_user_handler(queue):
 
 
 # Function to save the recorded audio to a WAV file
-def save_audio(frames, filename='temp.wav'):
+def save_audio(frames, filename='./audio_processing/temp.wav'):
     with wave.open(filename, 'wb') as wf:
         wf.setnchannels(1)
         wf.setsampwidth(pa.get_sample_size(pyaudio.paInt16))
@@ -185,7 +185,7 @@ def save_audio(frames, filename='temp.wav'):
         wf.writeframes(b''.join(frames))
 
 
-def transcribe(queue, filename='temp.wav', server_url='https://api.xeniox.tv/transcribe'):
+def transcribe(queue, filename='./audio_processing/temp.wav', server_url='https://api.xeniox.tv/transcribe'):
     files = {'file': open(filename, 'rb')}
     response = requests.post(server_url, files=files)
 
