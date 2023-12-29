@@ -56,6 +56,7 @@ def download_bbc_news_summary_api():
         return jsonify({"error": "Unable to retrieve the download URL"}), 500
 
 if __name__ == '__main__':
+    download_bbc_news_summary()  # Call the function once before starting the Flask application
     scheduler.add_job(id='Scheduled task', func=scheduled_task, trigger='interval', minutes=30)
     scheduler.start()
     app.run(debug=True)
