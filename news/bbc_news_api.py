@@ -59,4 +59,4 @@ if __name__ == '__main__':
     download_bbc_news_summary()  # Call the function once before starting the Flask application
     scheduler.add_job(id='Scheduled task', func=scheduled_task, trigger='interval', minutes=30)
     scheduler.start()
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=9445)
