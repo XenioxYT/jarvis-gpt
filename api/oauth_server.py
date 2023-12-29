@@ -36,7 +36,7 @@ def oauth2callback():
 
 @app.route('/download_token/<session_id>')
 def download_token(session_id):
-    token_path = f'temp_tokens/{session_id}/token.json'
+    token_path = f'./temp_tokens/{session_id}/token.json'
     if os.path.exists(token_path):
         with open(token_path, 'r') as token_file:
             token_data = token_file.read()
