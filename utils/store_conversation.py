@@ -107,7 +107,8 @@ def get_conversation(conversation_id):
     # If the conversation does not exist or the conversation content is empty, initiate a new conversation
     if result is None or not result[0]:
         initiate_conversation_if_not_exists(conversation_id)
-        messages = []
+        check = check_conversation(conversation_id)
+        messages = json.loads(check[0])
     else:
         # Retrieve the conversation from the database and store it in the messages variable
         messages = json.loads(result[0])
