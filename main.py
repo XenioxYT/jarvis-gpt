@@ -27,29 +27,10 @@ from utils.reminders import load_reminders, save_reminders
 from utils.spotify import toggle_spotify_playback
 from pveagle_speaker_identification import enroll_user, determine_speaker
 from noise_reduction import reduce_noise_and_normalize
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from news.bbc_news import convert_and_play_mp3
 from testing import generate_response as get_chatgpt_response
 from utils.store_conversation import get_conversation, store_conversation
 from text_to_speech import text_to_speech
-
-
-# Profiling
-# from scalene import scalene_profiler
-
-# scalene_profiler.start()
-
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-
-model_id = "distil-whisper/distil-medium.en"
-
-model = AutoModelForSpeechSeq2Seq.from_pretrained(
-    model_id, torch_dtype=torch_dtype, use_safetensors=True, low_cpu_mem_usage=True
-)
-model.to(device)
-
-processor = AutoProcessor.from_pretrained(model_id)
 
 load_dotenv()
 
@@ -107,7 +88,6 @@ STOPPED_LISTENING_SOUND = "./sounds/stopped_listening.wav"
 SUCCESS_SOUND = "./sounds/success.wav"
 
 client = texttospeech.TextToSpeechClient()
-device = "cuda" if torch.cuda.is_available() else "cpu"
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
@@ -115,16 +95,6 @@ REMINDERS_DB_FILE = 'reminders.json'
 
 porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
 
-pipeline_model = pipeline(
-    "automatic-speech-recognition",
-    model=model,
-    tokenizer=processor.tokenizer,
-    feature_extractor=processor.feature_extractor,
-    max_new_tokens=128,
-    return_timestamps=False,
-    torch_dtype=torch_dtype,
-    device=device,
-)
 # Initialize PyAudio
 pa = pyaudio.PyAudio()
 
@@ -215,21 +185,17 @@ def save_audio(frames, filename='temp.wav'):
         wf.writeframes(b''.join(frames))
 
 
-def transcribe(queue, filename='temp.wav', pipeline_model=pipeline_model):
-    if pipeline_model is None:
-        pipeline_model = pipeline(
-            "automatic-speech-recognition",
-            model=model,
-            tokenizer=processor.tokenizer,
-            feature_extractor=processor.feature_extractor,
-            max_new_tokens=128,
-            return_timestamps=False,
-            torch_dtype=torch_dtype,
-            device=device,
-        )
-    result = pipeline_model(filename)
-    transciption = result["text"]
-    queue.put(transciption)
+def transcribe(queue, filename='temp.wav', server_url='https://api.xeniox.tv/transcribe'):
+    files = {'file': open(filename, 'rb')}
+    response = requests.post(server_url, files=files)
+
+    if response.status_code == 200:
+        transcription = response.json().get('transcription', '')
+    else:
+        transcription = f"Error: Server responded with status code {response.status_code}"
+
+    queue.put(transcription)
+
 
 
 def split_first_sentence(text):
