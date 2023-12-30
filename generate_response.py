@@ -83,6 +83,7 @@ def process_text(completion, waiting_for_number, first_sentence_processed, tts_t
 
 
 def process_tool_call(tool_call, speaker, username_mapping, available_functions, tts_messages, multiple_tool_calls, tts_multiple_spoken, messages, cursor=None, db_conn=None):
+    tts_thread_function = None
     function_name = tool_call['function']['name']
     try:
         function_args = json.loads(tool_call['function']['arguments'])
@@ -106,15 +107,15 @@ def process_tool_call(tool_call, speaker, username_mapping, available_functions,
     print(f"Function name: {function_name}", f"Function args: {function_args}")
 
     # Determine the TTS message based on the function name and whether multiple tools are called
-    tts_message = tts_messages.get(function_name, "Connecting to the internet")
-    if multiple_tool_calls:
-        tts_message = "Accessing multiple tools..."
+    # tts_message = tts_messages.get(function_name, "Connecting to the internet")
+
 
     # Start the TTS thread
-    if tts_multiple_spoken == False:
-        tts_thread_function = threading.Thread(target=text_to_speech, args=(tts_message, ))
-        tts_thread_function.start()
-        tts_multiple_spoken = True
+    # if tts_multiple_spoken == False and multiple_tool_calls:
+    #     tts_message = "Accessing multiple tools..."
+    #     tts_thread_function = threading.Thread(target=text_to_speech, args=(tts_message, ))
+    #     tts_thread_function.start()
+    #     tts_multiple_spoken = True
 
     # Execute the function if available and store the response
     if function_name in available_functions:
@@ -179,6 +180,7 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
         first_sentence_processed = False
         waiting_for_number = False
         tool_calls = []
+        counter = 0
         
         response = oai_client.chat.completions.create(
             messages=messages,
@@ -215,8 +217,19 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
                         tc["id"] += tcchunk.id
                     if tcchunk.function.name:
                         tc["function"]["name"] += tcchunk.function.name
+                        # insert logic to check if function is available
+                        if tcchunk.function.name in available_functions and counter == 0:
+                            tts_message = tts_messages.get(tcchunk.function.name, "Connecting to the internet")
+                            tts_thread_function = threading.Thread(target=text_to_speech, args=(tts_message, ))
+                            tts_thread_function.start()
+                            counter += 1
                     if tcchunk.function.arguments:
                         tc["function"]["arguments"] += tcchunk.function.arguments
+                        counter += 1
+                        if counter == 75:
+                            tts_thread_function.join()
+                            tts_thread_function = threading.Thread(target=text_to_speech, args=("Still working, please wait", ))
+                            tts_thread_function.start()
                         
         if tool_calls:
             
@@ -261,8 +274,8 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
             break
         
 
-# response, tts_thread = generate_response(input_message="Can you edit the second note with more detailed weather information please?", speaker="Tom")
-# print(response)
+response, tts_thread, bbc_news_thread = generate_response(input_message="Please make it way longer and more detailed.", speaker="Tom")
+print(response)
 # try:
 #     if tts_thread.is_alive():
 #         tts_thread.join()
