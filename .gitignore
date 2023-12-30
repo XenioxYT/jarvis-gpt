@@ -54,3 +54,5 @@ utils/__pycache__/intent_prediction.cpython-310.pyc
 utils/__pycache__/predict_intent.cpython-310.pyc
 utils/__pycache__/send_to_discord.cpython-310.pyc
 news/__pycache__/bbc_news.cpython-311.pyc
+maps/__pycache__/routes.cpython-311.pyc
+maps/__pycache__/places.cpython-311.pyc
