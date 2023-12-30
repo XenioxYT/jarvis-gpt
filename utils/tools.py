@@ -305,5 +305,47 @@ tools = [
                 "required": ["title"]
             }
         }
-    }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_directions",
+            "description": "Get directions from Google Maps.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "start_location": {
+                        "type": "string",
+                        "description": "The start location of the route.",
+                    },
+                    "end_location": {
+                        "type": "string",
+                        "description": "The end location of the route.",
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "The mode of transport. Can be 'driving', 'walking', 'bicycling', or 'transit'. Defaults to 'driving'.",
+                    }
+                },
+                "required": ["start_location", "end_location"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_places",
+            "description": "Search Google maps places for locations. Gives the name, address, types, website, google maps link, and rating of a given place.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "text_query": {
+                        "type": "string",
+                        "description": "The query to search for.",
+                    }
+                },
+                "required": ["text_query"],
+            },
+        },
+    },
 ]
