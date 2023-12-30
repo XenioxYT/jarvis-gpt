@@ -5,6 +5,9 @@ import threading
 from openai import OpenAI
 from dotenv import load_dotenv
 from calendar_utils import add_event_to_calendar, check_calendar
+from maps.routes import get_directions
+from maps.places import search_places
+from misc_handlers import enroll_user_handler
 from news.bbc_news import download_bbc_news_summary
 from utils.home_assistant import toggle_entity
 from utils.notes import edit_or_delete_notes, retrieve_notes, save_note
@@ -30,7 +33,7 @@ api_base = os.getenv("OPENAI_API_BASE")
 oai_client = OpenAI(base_url=api_base, api_key=api_key)
 
 tts_thread = None
-
+global bbc_news_thread
 
 def split_first_sentence(text):
     # Look for a period, exclamation mark, or question mark that might indicate the end of a sentence
@@ -85,8 +88,10 @@ def process_tool_call(tool_call, speaker, username_mapping, available_functions,
         function_args = json.loads(tool_call['function']['arguments'])
     except:
         function_args = {}
-    # if function_name == "bbc_news_briefing":
-    #     bbc_news_thread = True
+    if function_name == "bbc_news_briefing":
+        bbc_news_thread = True
+    else:
+        bbc_news_thread = False
 
     if function_name in ["save_note", "edit_or_delete_notes", "retrieve_notes"]:
         function_args["user"] = speaker
@@ -97,7 +102,7 @@ def process_tool_call(tool_call, speaker, username_mapping, available_functions,
             function_args["username"] = username_mapping[speaker]
 
     # Print tool call information
-    print(f"Tool call: {tool_call}")
+    # print(f"Tool call: {tool_call}")
     print(f"Function name: {function_name}", f"Function args: {function_args}")
 
     # Determine the TTS message based on the function name and whether multiple tools are called
@@ -120,14 +125,14 @@ def process_tool_call(tool_call, speaker, username_mapping, available_functions,
         messages.append({
             "role": "function",
             "name": function_name,
-            "content": function_response,
+            "content": str(function_response),
         })
         if cursor:
             store_conversation(1, messages, cursor, db_conn)
         else:
             store_conversation(1, messages)
 
-    return messages, tts_multiple_spoken, tts_thread_function
+    return messages, tts_multiple_spoken, tts_thread_function, bbc_news_thread
 
 
 def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=None):
@@ -142,7 +147,7 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
         "add_event_to_calendar": add_event_to_calendar,
         "control_switch": toggle_entity,
         "play_song_on_spotify": search_spotify_song,
-        # "enroll_user": enroll_user_handler,
+        "enroll_user": enroll_user_handler,
         "google_search": google_search,
         "bbc_news_briefing": download_bbc_news_summary,
         "send_to_phone": send_message_sync,
@@ -151,6 +156,8 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
         "save_note": save_note,
         "retrieve_notes": retrieve_notes,
         "edit_or_delete_notes": edit_or_delete_notes,
+        "get_directions": get_directions,
+        "search_place": search_places,
     }
     
     messages = get_conversation(1)
@@ -223,7 +230,7 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
             tts_multiple_spoken = False
             
             for tool_call in tool_calls:
-                messages, tts_multiple_spoken, tts_thread_function = process_tool_call(tool_call, speaker, username_mapping, available_functions, tts_messages, multiple_tool_calls, tts_multiple_spoken, messages, cursor, db_conn)
+                messages, tts_multiple_spoken, tts_thread_function, bbc_news_thread = process_tool_call(tool_call, speaker, username_mapping, available_functions, tts_messages, multiple_tool_calls, tts_multiple_spoken, messages, cursor, db_conn)
             
             if finish_reason == "tool_calls" and full_completion:
                 messages.append({"role": "assistant","content": full_completion})
@@ -236,7 +243,10 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
                 full_completion = ""
                 completion = ""
                 continue
-            
+        
+        else:
+            bbc_news_thread = False
+        
         if completion:
             messages.append({
                 "role": "assistant",
@@ -247,7 +257,7 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
             if tts_thread and tts_thread.is_alive():
                 tts_thread.join()
             store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
-            return completion, tts_thread
+            return completion, tts_thread, bbc_news_thread
             break
         
 
