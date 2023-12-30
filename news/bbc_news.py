@@ -17,7 +17,7 @@ def download_bbc_news_summary():
     download_dir = os.getcwd()  # Get the current working directory
 
     # Get the download URL from the Flask API
-    response = requests.get('http://192.168.1.157:9445/download-bbc-news-summary')
+    response = requests.get('https://api.xeniox.tv/download-bbc-news-summary')
     if response.status_code == 200:
         download_url = response.json().get('download_url')
 
