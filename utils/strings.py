@@ -39,6 +39,8 @@ tts_messages = {
     "save_note": "Saving your note...",
     "retrieve_notes": "Retrieving your notes...",
     "edit_or_delete_notes": "Editing your notes...",
+    "get_directions": "Getting directions...",
+    "search_place": "Getting results...",
 }
 
 username_mapping = {
