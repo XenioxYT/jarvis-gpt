@@ -1,9 +1,9 @@
 import json
 import sqlite3
 import tiktoken
-from utilities.strings import messages
+from utils.strings import messages
 
-db_conn = sqlite3.connect('./conversations.db')
+db_conn = sqlite3.connect('conversations.db')
 db_conn.execute("""
 CREATE TABLE IF NOT EXISTS conversations
     (conversation_id INTEGER PRIMARY KEY,
@@ -61,7 +61,7 @@ def store_conversation(conversation_id, conversation, cursor=None, db_conn=None)
     # Now, store the conversation in the database
 
     if cursor is None:
-        db_conn = sqlite3.connect('./conversations.db')
+        db_conn = sqlite3.connect('conversations.db')
         cursor = db_conn.cursor()
     else:
         cursor = cursor
@@ -73,7 +73,7 @@ def store_conversation(conversation_id, conversation, cursor=None, db_conn=None)
     db_conn.commit()
 
 def check_conversation(conversation_id):
-    db_conn = sqlite3.connect('./conversations.db')
+    db_conn = sqlite3.connect('conversations.db')
     cursor = db_conn.cursor()
     cursor.execute("SELECT conversation FROM conversations WHERE conversation_id = ?", (conversation_id,))
     result = cursor.fetchone()
@@ -85,7 +85,7 @@ def check_conversation(conversation_id):
 def initiate_conversation_if_not_exists(conversation_id, cursor=None, db_conn=None):
     
     if cursor is None:
-        db_conn = sqlite3.connect('./conversations.db')
+        db_conn = sqlite3.connect('conversations.db')
         cursor = db_conn.cursor()
     else:
         cursor = cursor
@@ -95,6 +95,7 @@ def initiate_conversation_if_not_exists(conversation_id, cursor=None, db_conn=No
 
     # If the conversation does not exist or the conversation content is empty, initiate a new conversation
     if result is None or not result[0]:
+        # Here, you can replace 'New conversation initiated' with the actual conversation initiation logic
         store_conversation(conversation_id, messages)
     else:
         print(f'Conversation with id {conversation_id} already exists and has content.')

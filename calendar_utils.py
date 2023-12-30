@@ -9,14 +9,14 @@ import threading
 import time
 import uuid
 import requests
-from device_control.send_to_discord import send_message_sync
+from utils.send_to_discord import send_message_sync
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 
 def authenticate_google_calendar_api(username):
     creds = None
-    token_path = f'../user_tokens/{username}/token.json'
+    token_path = f'./tokens/{username}/token.json'
     if os.path.exists(token_path):
         creds = Credentials.from_authorized_user_file(token_path, SCOPES)
         if not creds.valid and creds.expired and creds.refresh_token:
@@ -26,7 +26,7 @@ def authenticate_google_calendar_api(username):
         state = f'{session_id}_user_{username}'
         redirect_uri = 'https://auth.xeniox.tv/oauth2callback'
         flow = InstalledAppFlow.from_client_secrets_file(
-            '../credentials/credentials.json', SCOPES, redirect_uri=redirect_uri)
+            'credentials.json', SCOPES, redirect_uri=redirect_uri)
         auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline', state=state)
 
         send_message_sync(username, f"Please visit this URL to authorize this application: {auth_url}")
@@ -54,7 +54,7 @@ def poll_for_token(session_id, username, timeout=7200, interval=5):
     print("Authentication process timed out or failed.")
 
 def save_token_locally(username, token_data):
-    user_token_dir = f'../user_tokens/{username}'
+    user_token_dir = f'./tokens/{username}'
     os.makedirs(user_token_dir, exist_ok=True)
     with open(f'{user_token_dir}/token.json', 'w') as token_file:
         token_file.write(token_data)

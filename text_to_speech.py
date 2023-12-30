@@ -6,7 +6,7 @@ import io
 import numpy as np
 
 
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '../credentials/creds.json'
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './creds.json'
 client = texttospeech.TextToSpeechClient()
 pa = pyaudio.PyAudio()
 

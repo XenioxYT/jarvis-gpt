@@ -27,7 +27,7 @@ def oauth2callback():
     flow.fetch_token(code=code)
 
     # Save the credentials in a temporary directory
-    temp_token_dir = f'./temp_tokens/{session_id}'
+    temp_token_dir = f'temp_tokens/{session_id}'
     os.makedirs(temp_token_dir, exist_ok=True)
     with open(f'{temp_token_dir}/token.json', 'w') as token_file:
         token_file.write(flow.credentials.to_json())

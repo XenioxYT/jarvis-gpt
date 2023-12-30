@@ -25,7 +25,7 @@ def download_bbc_news_summary():
         response = requests.get(download_url)
 
         # Save the file to the desired location
-        with open(os.path.join(download_dir, './bbc_news_summary.mp3'), 'wb') as file:
+        with open(os.path.join(download_dir, 'bbc_news_summary.mp3'), 'wb') as file:
             file.write(response.content)
         return "Downloaded BBC News Summary. It will play after your response. If the user would like to interrupt the playback, they can say your name (however, do not mention your name)."
     else:

@@ -10,7 +10,7 @@ pretrained_models/*
 notes/*
 __pycache__/*
 __pycache__/calendar_utils.cpython-310.pyc
-utilities/__pycache__/*
+utils/__pycache__/*
 utils/__pycache__/home_assistant.cpython-310.pyc
 utils/__pycache__/reminders.cpython-310.pyc
 utils/__pycache__/spotify.cpython-310.pyc
