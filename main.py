@@ -288,8 +288,8 @@ def main():
     koala.delete()
 
 
-reminder_daemon_thread = threading.Thread(target=reminder_daemon, daemon=True)
-reminder_daemon_thread.start()
+# reminder_daemon_thread = threading.Thread(target=reminder_daemon, daemon=True)
+# reminder_daemon_thread.start()
 
 if __name__ == '__main__':
     main()
