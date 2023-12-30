@@ -11,11 +11,10 @@ from misc_handlers import enroll_user_handler
 from news.bbc_news import download_bbc_news_summary
 from utils.home_assistant import toggle_entity
 from utils.notes import edit_or_delete_notes, retrieve_notes, save_note
-from utils.predict_intent import predict_intent
+from utils.predict_intent import get_intent_from_api
 from utils.google_search import google_search
 from utils.send_to_discord import send_message_sync
 from utils.spotify import search_spotify_song
-# from utils.tools import tools
 from utils.strings import tts_messages, username_mapping
 import os
 from utils.reminders import add_reminder, edit_reminder, list_unnotified_reminders
@@ -24,7 +23,7 @@ from utils.volume_control import volume_down, volume_up
 from utils.weather import get_weather_data
 from utils.tools import tools
 from text_to_speech import text_to_speech
-# from main import text_to_speech
+from utils.predict_intent import get_intent_from_api
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -172,9 +171,10 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
     
     store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
     
-    # intent = predict_intent(input_message)
+    intent = get_intent_from_api(input_message)
     
     while True:
+        
         completion = ""
         full_completion = ""
         first_sentence_processed = False
@@ -182,54 +182,60 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
         tool_calls = []
         counter = 0
         
-        response = oai_client.chat.completions.create(
-            messages=messages,
-            model="gpt-4-1106-preview",
-            tools=tools,
-            stream=True
-        )
-        try:
-            if tts_thread.is_alive():
-                tts_thread.join()
-        except Exception as e:
-            print(e)
+        if intent != "other":
+            tool_calls.append({"id": "", "type": "function", "function": {"name": intent, "arguments": "{}"}})
+            messages.append({"role": "function", "content": str(tool_calls)})
+            store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
         
-        for chunk in response:
-            finish_reason = chunk.choices[0].finish_reason
-            print(finish_reason) if finish_reason else None
-            delta = chunk.choices[0].delta
+        else:  
+            response = oai_client.chat.completions.create(
+                messages=messages,
+                model="gpt-4-1106-preview",
+                tools=tools,
+                stream=True
+            )
+            try:
+                if tts_thread.is_alive():
+                    tts_thread.join()
+            except Exception as e:
+                print(e)
             
-            if delta.content or delta.content == '':
-                completion += delta.content
-                # print(delta.content)
-                full_completion += delta.content
+            for chunk in response:
+                finish_reason = chunk.choices[0].finish_reason
+                print(finish_reason) if finish_reason else None
+                delta = chunk.choices[0].delta
                 
-                completion, waiting_for_number, first_sentence_processed, string1, tts_thread = process_text(completion, waiting_for_number, first_sentence_processed, tts_thread)
-            
-            if delta.tool_calls:
-                tcchunklist = delta.tool_calls
-                for tcchunk in tcchunklist:
-                    if len(tool_calls) <= tcchunk.index:
-                        tool_calls.append({"id": "", "type": "function", "function": {"name": "", "arguments": ""}})
-                    tc = tool_calls[tcchunk.index]
+                if delta.content or delta.content == '':
+                    completion += delta.content
+                    # print(delta.content)
+                    full_completion += delta.content
                     
-                    if tcchunk.id:
-                        tc["id"] += tcchunk.id
-                    if tcchunk.function.name:
-                        tc["function"]["name"] += tcchunk.function.name
-                        # insert logic to check if function is available
-                        if tcchunk.function.name in available_functions and counter == 0:
-                            tts_message = tts_messages.get(tcchunk.function.name, "Connecting to the internet")
-                            tts_thread_function = threading.Thread(target=text_to_speech, args=(tts_message, ))
-                            tts_thread_function.start()
+                    completion, waiting_for_number, first_sentence_processed, string1, tts_thread = process_text(completion, waiting_for_number, first_sentence_processed, tts_thread)
+                
+                if delta.tool_calls:
+                    tcchunklist = delta.tool_calls
+                    for tcchunk in tcchunklist:
+                        if len(tool_calls) <= tcchunk.index:
+                            tool_calls.append({"id": "", "type": "function", "function": {"name": "", "arguments": ""}})
+                        tc = tool_calls[tcchunk.index]
+                        
+                        if tcchunk.id:
+                            tc["id"] += tcchunk.id
+                        if tcchunk.function.name:
+                            tc["function"]["name"] += tcchunk.function.name
+                            # insert logic to check if function is available
+                            if tcchunk.function.name in available_functions and counter == 0:
+                                tts_message = tts_messages.get(tcchunk.function.name, "Connecting to the internet")
+                                tts_thread_function = threading.Thread(target=text_to_speech, args=(tts_message, ))
+                                tts_thread_function.start()
+                                counter += 1
+                        if tcchunk.function.arguments:
+                            tc["function"]["arguments"] += tcchunk.function.arguments
                             counter += 1
-                    if tcchunk.function.arguments:
-                        tc["function"]["arguments"] += tcchunk.function.arguments
-                        counter += 1
-                        if counter == 75:
-                            tts_thread_function.join()
-                            tts_thread_function = threading.Thread(target=text_to_speech, args=("Still working, please wait", ))
-                            tts_thread_function.start()
+                            if counter == 75:
+                                tts_thread_function.join()
+                                tts_thread_function = threading.Thread(target=text_to_speech, args=("Still working, please wait", ))
+                                tts_thread_function.start()
                         
         if tool_calls:
             
@@ -274,7 +280,7 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
             break
         
 
-response, tts_thread, bbc_news_thread = generate_response(input_message="Please make it way longer and more detailed.", speaker="Tom")
+response, tts_thread, bbc_news_thread = generate_response(input_message="Tell me the news", speaker="Tom")
 print(response)
 # try:
 #     if tts_thread.is_alive():
