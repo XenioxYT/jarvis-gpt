@@ -1,7 +1,8 @@
+import os
 import requests
 import json
 
-def search_text_places(api_key, text_query, field_mask, location_bias=None, max_result_count=5, price_levels=None, open_now=None):
+def search_places(text_query, max_result_count=5, price_levels=None, open_now=None):
     """
     Perform a Text Search request to Google Places API.
 
@@ -14,7 +15,8 @@ def search_text_places(api_key, text_query, field_mask, location_bias=None, max_
     :param open_now: Optional flag to filter places open now.
     :return: Response from the API as a JSON object.
     """
-
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    field_mask = 'places.displayName,places.formattedAddress,places.types,places.websiteUri,places.googleMapsUri,places.rating'
     url = "https://places.googleapis.com/v1/places:searchText"
 
     headers = {
@@ -27,9 +29,6 @@ def search_text_places(api_key, text_query, field_mask, location_bias=None, max_
         'textQuery': text_query,
         'maxResultCount': max_result_count
     }
-
-    if location_bias:
-        data['locationBias'] = location_bias
 
     if price_levels:
         data['priceLevels'] = price_levels
@@ -46,15 +45,7 @@ def search_text_places(api_key, text_query, field_mask, location_bias=None, max_
         return f"Error: {response.status_code}, {response.text}"
 
 
-# Example usage
-api_key = ''  # Replace with your actual API key
-text_query = 'valentinos'
-field_mask = 'places.displayName,places.formattedAddress,places.types,places.websiteUri,places.googleMapsUri,places.rating'
-results = search_text_places(api_key, text_query, field_mask)
-
-print(results)
-
-def get_specific_place_results(api_key, text_query, field_mask, max_result_count=1):
+def get_specific_place_results(text_query, max_result_count=1):
     """
     Perform a Text Search request to Google Places API.
 
@@ -64,7 +55,8 @@ def get_specific_place_results(api_key, text_query, field_mask, max_result_count
     :param max_result_count: Optional max number of results to return.
     :return: Response from the API as a JSON object.
     """
-
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    field_mask = 'places.displayName,places.formattedAddress,places.types,places.websiteUri,places.googleMapsUri,places.rating'
     url = "https://places.googleapis.com/v1/places:searchText"
 
     headers = {
@@ -85,8 +77,3 @@ def get_specific_place_results(api_key, text_query, field_mask, max_result_count
         return results
     else:
         return f"Error: {response.status_code}, {response.text}"
-    
-# Example usage
-text_query = 'Valentinos Hair & Beauty'
-field_mask = 'places.displayName,places.formattedAddress,places.types,places.websiteUri,places.googleMapsUri,places.rating,places.currentOpeningHours'
-print(get_specific_place_results(api_key, text_query, field_mask))
