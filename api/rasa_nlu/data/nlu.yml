@@ -27,6 +27,11 @@ nlu:
     - what is the latest news
     - get the latest news
     - get the news
+    - tell me the news
+    - play the latest news from the BBC
+    - please tell me the news
+    - can you give me a news update?
+    - tell me the latest news
 
 - intent: volume_up
   examples: |
