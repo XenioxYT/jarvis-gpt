@@ -25,19 +25,19 @@ from queue import Queue
 # imports for the tools
 from utils.reminders import load_reminders, save_reminders
 from utils.spotify import toggle_spotify_playback
-from pveagle_speaker_identification import enroll_user, determine_speaker
+from misc_handlers import determine_user_handler
 from noise_reduction import reduce_noise_and_normalize
 from news.bbc_news import convert_and_play_mp3
-from testing import generate_response as get_chatgpt_response
+from generate_response import generate_response as get_chatgpt_response
 from utils.store_conversation import get_conversation, store_conversation
 from text_to_speech import text_to_speech
+
 
 load_dotenv()
 
 thinking_sound_stop_event = threading.Event()
 
 current_playback = None
-bbc_news_thread = False
 
 
 def play_sound(sound_file, loop=False):
@@ -126,54 +126,6 @@ def reminder_daemon():
         check_reminders(cursor=c, db_conn=db_conn)
         db_conn.close()
         time.sleep(30)  # Wait for one minute before checking again
-
-
-def enroll_user_handler(name):
-    # Create the destination directory if it doesn't exist
-    os.makedirs(f'./user_dataset_temp/{name}', exist_ok=True)
-
-    # Check if the text file exists
-    counter_file = f"./user_dataset_temp/{name}/counter.txt"
-    if os.path.exists(counter_file):
-        with open(counter_file, 'r') as f:
-            count = int(f.read())
-        if count >= 8:
-            return "User already enrolled"
-        else:
-            count += 1
-    else:
-        count = 1
-
-    # Write the new count to the file
-    with open(counter_file, 'w') as f:
-        f.write(str(count))
-
-    # Generate a random number
-    random_number = random.randint(1, 1000)
-    reduce_noise_and_normalize('./temp.wav')
-
-    # Copy and move the file
-    destination = f"./user_dataset_temp/{name}/{random_number}.wav"
-    shutil.copy("./temp_cleaned_normalised.wav", destination)
-
-    audio_files = [f'./user_dataset_temp/{name}/{file}' for file in os.listdir(f'./user_dataset_temp/{name}') if file.endswith('.wav')]
-
-    return enroll_user(pv_access_key, audio_files, f"./user_models/{name}.pv")
-
-
-def determine_user_handler(queue):
-    # Check if the directory is empty
-    if not os.listdir('./user_models/'):
-        print("The directory is empty")
-        result = "Unknown"
-        queue.put(result)
-        return "Unknown"
-    input_profile_paths = [f'./user_models/{name}' for name in os.listdir('./user_models/')]
-    audio_path = './temp_cleaned_normalised.wav'
-    result = determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths,
-                               test_audio_path=audio_path)
-    queue.put(result)
-    return "Unknown"
 
 
 # Function to save the recorded audio to a WAV file
@@ -294,13 +246,12 @@ def main():
             print(command)
             user = user_handler_queue.get()
             print(user)
-            response, tts_thread = get_chatgpt_response(command, speaker=str(user))
+            response, tts_thread, bbc_news_thread = get_chatgpt_response(command, speaker=str(user))
             if spotify_was_playing:
                 toggle_spotify_playback()
             if tts_thread and tts_thread.is_alive():
                 tts_thread.join()
             text_to_speech(response)
-            global bbc_news_thread
             stop_event = threading.Event()
             if bbc_news_thread:
                 news_thread = threading.Thread(target=convert_and_play_mp3, args=("bbc_news_summary.mp3", stop_event))
