@@ -172,7 +172,7 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
     store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
     
     intent = get_intent_from_api(input_message.lower())
-    
+    intent_counter = 0
     while True:
         
         completion = ""
@@ -182,10 +182,16 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
         tool_calls = []
         counter = 0
         
-        if intent != "other":
-            tool_calls.append({"id": "", "type": "function", "function": {"name": intent, "arguments": "{}"}})
-            messages.append({"role": "function", "content": str(tool_calls)})
+        
+        if intent != "other" and intent_counter == 0:
+            tool_calls.append({"id": "call_intent", "type": "function", "function": {"name": intent, "arguments": ""}})
+            messages.append({"role": "function", "name": "tool_calls", "content": str(tool_calls)})
+            finish_reason = "tool_calls"
+            if intent in tts_messages:
+                tts_thread = threading.Thread(target=text_to_speech, args=(tts_messages[intent], ))
+                tts_thread.start()
             store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
+            intent_counter += 1
         
         else:  
             response = oai_client.chat.completions.create(
