@@ -1,4 +1,5 @@
 import requests
+import os
 
 def convert_km_to_miles(km):
     """ Convert kilometers to miles. """
@@ -17,7 +18,7 @@ def format_steps(steps):
         formatted_steps.append(formatted_step)
     return formatted_steps
 
-def get_directions(api_key, start_location, end_location):
+def get_directions(start_location, end_location, mode="driving"):
     """
     Get directions from Google Maps Directions API and format the output.
 
@@ -26,11 +27,12 @@ def get_directions(api_key, start_location, end_location):
     :param end_location: The destination location (address).
     :return: Formatted directions.
     """
-
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
     base_url = "https://maps.googleapis.com/maps/api/directions/json?"
     params = {
         'origin': start_location,
         'destination': end_location,
+        'mode': mode,
         'key': api_key
     }
 
@@ -45,7 +47,6 @@ def get_directions(api_key, start_location, end_location):
     for route in directions['routes']:
         formatted_route = {
             'summary': route['summary'],
-            'copyrights': route['copyrights'],
             'legs': []
         }
         for leg in route['legs']:
@@ -62,9 +63,6 @@ def get_directions(api_key, start_location, end_location):
     return formatted_output
 
 # Example usage
-api_key = ''  # Replace with your actual API key
-start_location = 'S66 1fq'
-end_location = 'End s60 4bx'
-directions = get_directions(api_key, start_location, end_location)
+# print(get_directions(start_location, end_location))
 
-print(directions)
+# print(directions)
