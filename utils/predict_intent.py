@@ -1,42 +1,35 @@
-def predict_intent(text, nlp):
-    # Process the text with spaCy
-    doc = nlp(text)
+import requests
 
-    # Define reference sentences for different intents
-    # ref_sentences = {
-    #     "control_lights_on": ["Turn on the lights", "Lights on", "Activate the lights"],
-    #     "control_lights_off": ["Turn off the lights", "Lights off", "Deactivate the lights"],
-    #     "bbc_news_briefing": ["Tell me the news", "What's the news today", "News update, please"],
-    #     "list_reminders": ["What are my reminders", "List my reminders for today"],
-    #     "volume_down": ["Turn down the volume", "Lower the volume", "Volume lower, please"],
-    #     "volume_up": ["Turn up the volume", "Increase the volume", "Volume higher, please"],
-    #     "retrieve_notes": ["What are my notes", "List my notes", "Show me my notes"]
-    # }
+def get_intent_from_api(text):
+    url = "https://api.xeniox.tv/chat"
+    headers = {'Content-Type': 'application/json'}
+    payload = {"message": text}
     
-    ref_sentences = {
-        # "control_switch": "Turn on the lights",
-        # "control_switch": "Turn off the lights",
-        "bbc_news_briefing": "Tell me the news",
-        "list_reminders": "What are my reminders",
-        "volume_down": "Turn down the volume",
-        "volume_up": "Turn up the volume",
-        "retrieve_notes": "What are my notes",
-    }
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()  # This will raise an HTTPError if the HTTP request returned an unsuccessful status code
 
-    # Initialize variables to store the best match
-    best_intent = None
-    highest_similarity = 0.0
+        # Assuming the API returns a JSON with the intent in a key named 'intent'
+        intent = response.json().get('intent')
+        if intent == 'control_switch_on' or intent == 'control_switch_off':
+            intent = 'control_switch'
+        return intent
 
-    # Check for semantic similarity with each reference sentence
-    for intent, ref_text in ref_sentences.items():
-        ref_doc = nlp(ref_text)
-        similarity = doc.similarity(ref_doc)
-        if similarity > highest_similarity:
-            highest_similarity = similarity
-            best_intent = intent
+    except requests.exceptions.HTTPError as err:
+        print(f"HTTP error occurred: {err}")
+    except Exception as err:
+        print(f"An error occurred: {err}")
 
-    # Determine if the highest similarity score is above a threshold
-    if highest_similarity > 0.85:  # Adjust the threshold as needed
-        return best_intent
-    
-    return None
+# Example usage
+text = "turn on the light"
+intent = get_intent_from_api(text)
+print(intent)
+
+
+# intents:
+#   - control_switch_on  -> remap to control_switch
+#   - control_switch_off -> remap to control_switch
+#   - bbc_news_briefing
+#   - volume_up
+#   - volume_down
+#   - other
