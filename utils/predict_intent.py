@@ -21,7 +21,7 @@ def get_intent_from_api(text):
         print(f"An error occurred: {err}")
 
 # Example usage
-text = "turn on the light"
+text = "what's the news?"
 intent = get_intent_from_api(text)
 print(intent)
 
