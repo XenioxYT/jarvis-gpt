@@ -171,7 +171,7 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
     
     store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
     
-    intent = get_intent_from_api(input_message)
+    intent = get_intent_from_api(input_message.lower())
     
     while True:
         
