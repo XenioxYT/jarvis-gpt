@@ -1,0 +1,91 @@
+nlu:
+- intent: control_switch_on
+  examples: |
+    - turn on the lights
+    - lights on
+    - switch on the lights
+    - activate the lighting
+
+- intent: control_switch_off
+  examples: |
+    - turn off the lights
+    - lights off
+    - switch off the lights
+    - deactivate the lighting
+
+- intent: bbc_news_briefing
+  examples: |
+    - play the news
+    - show me the news
+    - I want to hear the news
+    - news update, please
+    - play the latest news
+    - what's the current news?
+    - what is the current news
+    - what is the news?
+    - what's the latest news?
+    - what is the latest news
+    - get the latest news
+    - get the news
+
+- intent: volume_up
+  examples: |
+    - volume up
+    - increase the volume
+    - turn up the sound
+    - louder, please
+    - can you turn it up?
+    - turn up the volume
+    - can you turn up the volume please?
+
+- intent: volume_down
+  examples: |
+    - volume down
+    - decrease the volume
+    - turn down the sound
+    - quieter, please
+    - can you turn it down?
+    - turn down the volume
+    - can you turn down the volume please?
+
+- intent: other
+  examples: |
+    - what's the weather like
+    - play some music on Spotify
+    - google search for nearby restaurants
+    - save a note
+    - give me directions to the nearest gas station
+    - how is the traffic to work
+    - turn on the light and tell me the news
+    - just chatting
+    - what can you do
+    - hey, how are you?
+    - what's up?
+    - tell me about maths
+    - can you make a note for me?
+    - what's the weather like in London?
+    - what's the weather like in San Francisco?
+    - what's the latest news?
+    - find a recipe for spaghetti bolognese
+    - what movies are playing nearby?
+    - set a timer for 10 minutes
+    - remind me to call mom tomorrow
+    - what's the score in the football game?
+    - play my workout playlist
+    - what's the stock price of Microsoft?
+    - find a yoga class near me
+    - what's the capital of Australia?
+    - translate 'hello' to Spanish
+    - what's the distance to the moon?
+    - tell me a joke
+    - what's the time in Tokyo?
+    - find a vegan restaurant nearby
+    - what's the latest in AI research?
+    - find a Python tutorial for beginners
+    - what's the current exchange rate for USD to EUR?
+    - find a sushi restaurant nearby
+    - what's the weather forecast for the weekend?
+    - play the latest episode of my favorite podcast
+    - what's the latest version of Python?
+    - translate 'good morning' to French
+    - find a coffee shop with free wifi near me

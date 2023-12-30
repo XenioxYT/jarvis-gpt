@@ -1,0 +1,25 @@
+intents:
+  - control_switch_on
+  - control_switch_off
+  - bbc_news_briefing
+  - volume_up
+  - volume_down
+  - other
+
+responses:
+  utter_turn_on_lights:
+    - text: "Turning on the lights."
+  utter_turn_off_lights:
+    - text: "Turning off the lights."
+  utter_play_news:
+    - text: "Playing the latest news."
+  utter_volume_up:
+    - text: "Increasing volume."
+  utter_volume_down:
+    - text: "Decreasing volume."
+  utter_other:
+    - text: "I'm not sure how to help with that."
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true

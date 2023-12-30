@@ -1,0 +1,30 @@
+stories:
+- story: turn on lights story
+  steps:
+  - intent: control_switch_on
+  - action: utter_turn_on_lights
+
+- story: turn off lights story
+  steps:
+  - intent: control_switch_off
+  - action: utter_turn_off_lights
+
+- story: play news story
+  steps:
+  - intent: bbc_news_briefing
+  - action: utter_play_news
+
+- story: volume up story
+  steps:
+  - intent: volume_up
+  - action: utter_volume_up
+
+- story: volume down story
+  steps:
+  - intent: volume_down
+  - action: utter_volume_down
+
+- story: other commands story
+  steps:
+  - intent: other
+  - action: utter_other
