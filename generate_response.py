@@ -286,8 +286,8 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
             break
         
 
-response, tts_thread, bbc_news_thread = generate_response(input_message="Tell me the news", speaker="Tom")
-print(response)
+# response, tts_thread, bbc_news_thread = generate_response(input_message="Tell me the news", speaker="Tom")
+# print(response)
 # try:
 #     if tts_thread.is_alive():
 #         tts_thread.join()
