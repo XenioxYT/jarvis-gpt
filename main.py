@@ -1,6 +1,4 @@
-import json
 import os
-import re
 import sqlite3
 import threading
 import time
@@ -8,16 +6,11 @@ import pyaudio
 import wave
 import requests
 import numpy as np
-import torch
 import webrtcvad
 import pvporcupine
-import shutil
-import random
 from dotenv import load_dotenv
 from openai import OpenAI
-import torch
 from google.cloud import texttospeech
-import io
 import datetime
 import simpleaudio as sa
 from queue import Queue
