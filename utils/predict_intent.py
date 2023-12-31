@@ -20,10 +20,10 @@ def get_intent_from_api(text):
     except Exception as err:
         print(f"An error occurred: {err}")
 
-# Example usage
-text = "what's the news?"
-intent = get_intent_from_api(text)
-print(intent)
+# # Example usage
+# text = "what's the news?"
+# intent = get_intent_from_api(text)
+# print(intent)
 
 
 # intents:
