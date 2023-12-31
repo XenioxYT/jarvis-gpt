@@ -8,6 +8,7 @@ import requests
 import numpy as np
 import webrtcvad
 import pvporcupine
+import pvkoala
 from dotenv import load_dotenv
 from openai import OpenAI
 from google.cloud import texttospeech
@@ -87,6 +88,7 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 REMINDERS_DB_FILE = 'reminders.json'
 
 porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
+koala = pvkoala.create(access_key=pv_access_key)
 
 # Initialize PyAudio
 pa = pyaudio.PyAudio()
@@ -180,16 +182,16 @@ def main():
             vad_frame_len = int(0.02 * 16000)  # 20 ms
 
             while True:
-                pcm = audio_stream.read(vad_frame_len, exception_on_overflow=False)
-                pcm_unpacked = np.frombuffer(pcm, dtype='h', count=vad_frame_len)
+                pcm = audio_stream.read(koala.frame_length, exception_on_overflow=False)
+                pcm_unpacked = np.frombuffer(pcm, dtype='h', count=koala.frame_length)
 
                 pcm_boosted = np.multiply(pcm_unpacked, volume_boost_factor).astype(int)
 
                 # Apply Koala noise suppression
-                # pcm_suppressed = koala.process(pcm_boosted)
+                pcm_suppressed = koala.process(pcm_boosted)
 
                 # Accumulate the suppressed frames for a full VAD frame
-                vad_frame_accumulator = np.append(vad_frame_accumulator, pcm_boosted)
+                vad_frame_accumulator = np.append(vad_frame_accumulator, pcm_suppressed)
                 # Once enough samples are accumulated for a 20 ms frame, process with VAD
                 if len(vad_frame_accumulator) >= vad_frame_len:
                     vad_frame = vad_frame_accumulator[:vad_frame_len]
