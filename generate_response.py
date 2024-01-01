@@ -239,8 +239,13 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
                         if tcchunk.function.arguments:
                             tc["function"]["arguments"] += tcchunk.function.arguments
                             counter += 1
-                            if counter == 75 and not tts_thread_function.is_alive():
-                                tts_thread_function.join()
+                            if counter == 75:
+                                try:
+                                    if not tts_thread_function.is_alive():
+                                        tts_thread_function.join()
+                                except:
+                                    pass
+
                                 tts_thread_function = threading.Thread(target=text_to_speech, args=("Still working, please wait", ))
                                 tts_thread_function.start()
                         
@@ -289,7 +294,7 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
             break
         
 
-# response, tts_thread, bbc_news_thread = generate_response(input_message="Tell me the news", speaker="Tom")
+# response, tts_thread, bbc_news_thread = generate_response(input_message="Turn on the lights in the bedroom please.", speaker="Tom")
 # print(response)
 # try:
 #     if tts_thread.is_alive():
