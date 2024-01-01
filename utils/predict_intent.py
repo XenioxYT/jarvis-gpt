@@ -12,7 +12,7 @@ def get_intent_from_api(text):
         # Assuming the API returns a JSON with the intent in a key named 'intent'
         intent = response.json().get('intent')
         if intent == 'control_switch_on' or intent == 'control_switch_off':
-            intent = 'control_switch'
+            intent = 'other'
         return intent
 
     except requests.exceptions.HTTPError as err:
