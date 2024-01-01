@@ -41,5 +41,5 @@ def toggle_entity(entity_id, switch):
         print(f"Failed to control {entity_id}. Response:", response.text)
 
 # Example usage
-# entity_id = "switch.desk_lamp_socket_1" 
-# toggle_entity(entity_id, True)
+# entity_id = "switch.bedroom_tv_light_socket_1" 
+# toggle_entity(entity_id, False)
