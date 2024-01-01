@@ -192,11 +192,12 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
                 tts_thread.start()
             store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
             intent_counter += 1
+            bbc_news_thread = True if intent == "bbc_news_briefing" else False
         
         else:  
             response = oai_client.chat.completions.create(
                 messages=messages,
-                model="gpt-4-1106-preview",
+                model="gpt-3.5-turbo-1106",
                 tools=tools,
                 stream=True
             )
@@ -268,6 +269,8 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
                 full_completion = ""
                 completion = ""
                 continue
+        if intent_counter == 1 and bbc_news_thread == True:
+            bbc_news_thread = True
         
         else:
             bbc_news_thread = False
