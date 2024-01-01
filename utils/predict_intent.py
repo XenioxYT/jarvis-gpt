@@ -17,8 +17,10 @@ def get_intent_from_api(text):
 
     except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
+        return "other"
     except Exception as err:
         print(f"An error occurred: {err}")
+        return "other"
 
 # # Example usage
 # text = "what's the news?"
