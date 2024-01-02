@@ -1,3 +1,4 @@
+from home_assistant import list_light_switch_entities
 tools = [
     {
         "type": "function",
@@ -200,7 +201,7 @@ tools = [
                 "properties": {
                     "entity_id": {
                         "type": "string",
-                        "description": "The entity ID to toggle. These entities are: light.dad_s_house_bedroom'"
+                        "description": f"The entity ID to toggle. These entity IDs are: {str(list_light_switch_entities())}.",
                     },
                     "switch": {
                         "type": "boolean",
@@ -349,3 +350,5 @@ tools = [
         },
     },
 ]
+
+print(tools)
