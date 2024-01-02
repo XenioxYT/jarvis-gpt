@@ -1,14 +1,9 @@
+from collections.abc import Mapping
 import requests
 import os
 from dotenv import load_dotenv
-
 load_dotenv()
 
-
-# Proposed optimization:
-# 1. Simplified the conversion of the 'switch' variable to a boolean.
-# 2. Added support for the 'light' entity.
-# 3. Optimized string formatting and code structure for better efficiency and clarity.
 
 def toggle_entity(entity_id, switch):
     # Convert the switch parameter to boolean more efficiently
@@ -41,5 +36,26 @@ def toggle_entity(entity_id, switch):
         print(f"Failed to control {entity_id}. Response:", response.text)
 
 # Example usage
-# entity_id = "switch.bedroom_tv_light_socket_1" 
+# entity_id = "switch.bedroom_draws_light" 
 # toggle_entity(entity_id, False)
+
+def list_light_switch_entities():
+    access_token = os.getenv('HASS_TOKEN')
+    home_assistant_url = os.getenv('HASS_URL')
+
+    url = f"{home_assistant_url}/api/states"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # Sending the GET request to Home Assistant
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 200:
+        all_entities = response.json()
+        light_switch_entities = [entity['entity_id'] for entity in all_entities if entity['entity_id'].split('.')[0] in ['light', 'switch']]
+        return light_switch_entities
+    else:
+        print(f"Failed to fetch entities. Response:", response.text)
+        return []
+
+light_switch_entities = list_light_switch_entities()
+print(light_switch_entities)
