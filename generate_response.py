@@ -197,7 +197,7 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
         else:  
             response = oai_client.chat.completions.create(
                 messages=messages,
-                model="gpt-3.5-turbo-1106",
+                model="gpt-4-1106-preview",
                 tools=tools,
                 stream=True
             )
@@ -294,7 +294,7 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
             break
         
 
-# response, tts_thread, bbc_news_thread = generate_response(input_message="Turn on the lights in the bedroom please.", speaker="Tom")
+# response, tts_thread, bbc_news_thread = generate_response(input_message="Turn on the lights in that room please.", speaker="Tom")
 # print(response)
 # try:
 #     if tts_thread.is_alive():
