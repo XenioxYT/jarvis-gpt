@@ -101,22 +101,8 @@ def process_tool_call(tool_call, speaker, username_mapping, available_functions,
         if function_args["username"] == speaker and speaker in username_mapping:
             function_args["username"] = username_mapping[speaker]
 
-    # Print tool call information
-    # print(f"Tool call: {tool_call}")
     print(f"Function name: {function_name}", f"Function args: {function_args}")
 
-    # Determine the TTS message based on the function name and whether multiple tools are called
-    # tts_message = tts_messages.get(function_name, "Connecting to the internet")
-
-
-    # Start the TTS thread
-    # if tts_multiple_spoken == False and multiple_tool_calls:
-    #     tts_message = "Accessing multiple tools..."
-    #     tts_thread_function = threading.Thread(target=text_to_speech, args=(tts_message, ))
-    #     tts_thread_function.start()
-    #     tts_multiple_spoken = True
-
-    # Execute the function if available and store the response
     if function_name in available_functions:
         function_response = available_functions[function_name](**function_args)
         print(function_response)
