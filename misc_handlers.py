@@ -48,7 +48,6 @@ def determine_user_handler(queue):
         return "Unknown"
     input_profile_paths = [f'./user_models/{name}' for name in os.listdir('./user_models/')]
     audio_path = './temp_cleaned_normalised.wav'
-    result = determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths,
-                               test_audio_path=audio_path)
+    result = determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths, test_audio_path=audio_path)
     queue.put(result)
     return "Unknown"
