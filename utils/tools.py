@@ -1,4 +1,4 @@
-from home_assistant import list_light_switch_entities
+from utils.home_assistant import list_light_switch_entities
 tools = [
     {
         "type": "function",
@@ -351,4 +351,4 @@ tools = [
     },
 ]
 
-print(tools)
+# print(tools)
