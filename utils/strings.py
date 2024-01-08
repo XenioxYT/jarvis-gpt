@@ -70,7 +70,7 @@ username_mapping = {
 
 
 def get_location():
-    api_token = os.getenv('IPINFO_TOKEN')
+    api_token = os.getenv('ipinfo_token')
     headers = {
         'Authorization': 'Bearer ' + api_token
     }

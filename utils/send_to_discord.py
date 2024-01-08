@@ -12,7 +12,7 @@ message_result = None
 async def send_message_to_user(username, text):
     global message_result
     guild_id = 1187204974678130718
-    token = os.getenv('DISCORD_TOKEN')
+    token = os.getenv('discord_token')
 
     intents = discord.Intents.default()
     intents.members = True

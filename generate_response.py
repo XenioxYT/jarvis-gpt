@@ -26,8 +26,8 @@ from text_to_speech import text_to_speech
 from utils.predict_intent import get_intent_from_api
 
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
-api_base = os.getenv("OPENAI_API_BASE")
+api_key = os.getenv("openai_api_key")
+api_base = os.getenv("openai_api_base")
 
 oai_client = OpenAI(base_url=api_base, api_key=api_key)
 

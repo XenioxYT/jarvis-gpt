@@ -4,7 +4,7 @@ import shutil
 from pveagle_speaker_identification import enroll_user, determine_speaker
 from noise_reduction import reduce_noise_and_normalize
 
-pv_access_key = os.getenv("PORCUPINE_ACCESS_KEY")
+pv_access_key = os.getenv("picovoice_access_key")
 
 def enroll_user_handler(name):
     # Create the destination directory if it doesn't exist

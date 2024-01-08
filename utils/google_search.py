@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def google_search(query):
-    api_key = os.getenv('GOOGLE_API_KEY')
-    cse_id = os.getenv('GOOGLE_CSE_ID')
+    api_key = os.getenv('google_api_key')
+    cse_id = os.getenv('google_cse_id')
 
     # Build a service object for the API
     service = build("customsearch", "v1", developerKey=api_key)

@@ -15,7 +15,7 @@ def search_places(text_query, max_result_count=5, price_levels=None, open_now=No
     :param open_now: Optional flag to filter places open now.
     :return: Response from the API as a JSON object.
     """
-    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    api_key = os.getenv("google_maps_api_key")
     field_mask = 'places.displayName,places.formattedAddress,places.types,places.websiteUri,places.googleMapsUri,places.rating'
     url = "https://places.googleapis.com/v1/places:searchText"
 
@@ -55,7 +55,7 @@ def get_specific_place_results(text_query, max_result_count=1):
     :param max_result_count: Optional max number of results to return.
     :return: Response from the API as a JSON object.
     """
-    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    api_key = os.getenv("google_maps_api_key")
     field_mask = 'places.displayName,places.formattedAddress,places.types,places.websiteUri,places.googleMapsUri,places.rating'
     url = "https://places.googleapis.com/v1/places:searchText"
 

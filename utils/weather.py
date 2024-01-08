@@ -7,19 +7,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
+openweather_api_key = os.getenv("openweather_api_key")
 
 
 def get_weather_data(location, date=None):
     location = location.split(",")[0]  # Extracting just the city name
 
     # Geocoding to get latitude and longitude
-    geocode_response = requests.get(f"http://api.openweathermap.org/geo/1.0/direct?q={location}&appid={OPENWEATHER_API_KEY}").json()
+    geocode_response = requests.get(f"http://api.openweathermap.org/geo/1.0/direct?q={location}&appid={openweather_api_key}").json()
     if not geocode_response:
         return json.dumps({"error": "Location not found"}, indent=2)
 
     lat, lon = geocode_response[0]['lat'], geocode_response[0]['lon']
-    weather_api_url = f"https://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&exclude=minutely,hourly,alerts&appid={OPENWEATHER_API_KEY}&units=metric"
+    weather_api_url = f"https://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&exclude=minutely,hourly,alerts&appid={openweather_api_key}&units=metric"
     response = requests.get(weather_api_url).json()
 
     response_data = {"location": location, "data": []}

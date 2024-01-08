@@ -1,8 +1,8 @@
 import os
 import requests
 
-access_token = os.getenv('HASS_TOKEN')
-home_assistant_url = os.getenv('HASS_URL')
+access_token = os.getenv('home_assistant_token')
+home_assistant_url = os.getenv('home_assistant_url')
 SPOTIFY_URI = 'spotify:playlist:37i9dQZF1DWUBCiFp3lAyi'
 DEVICE_NAME = 'media_player.tom_s_room'
 
@@ -17,8 +17,8 @@ def play_spotify_uri(spotify_uri):
     :param device_name: Entity ID of the Google Home speaker.
     """
     device_name = 'media_player.tom_s_room'
-    token = os.getenv('HASS_TOKEN')
-    ha_url = os.getenv('HASS_URL')
+    token = os.getenv('home_assistant_token')
+    ha_url = os.getenv('home_assistant_url')
     # Headers for the HTTP request
     headers = {
         'Authorization': f'Bearer {token}',
@@ -55,8 +55,8 @@ def search_spotify_song(search_term):
     :param device_name: Entity ID of the Google Home speaker.
     """
     device_name = 'media_player.tom_s_room'
-    token = os.getenv('HASS_TOKEN')
-    ha_url = os.getenv('HASS_URL')
+    token = os.getenv('home_assistant_token')
+    ha_url = os.getenv('home_assistant_url')
     # Headers for the HTTP request
     headers = {
         'Authorization': f'Bearer {token}',
@@ -96,8 +96,8 @@ def toggle_spotify_playback(force_play=False):
     :param force_play: Boolean to determine whether to toggle playback regardless of the current state.
     """
     device_name = 'media_player.spotify_tom'
-    token = os.getenv('HASS_TOKEN')
-    ha_url = os.getenv('HASS_URL')
+    token = os.getenv('home_assistant_token')
+    ha_url = os.getenv('home_assistant_url')
 
     # Check if Spotify is playing, skip if force_play is True
     if not force_play and not is_spotify_playing_on_device():
@@ -133,8 +133,8 @@ def is_spotify_playing_on_device():
     :return: True if Spotify is playing, False otherwise.
     """
     device_name = 'media_player.tom_s_room'
-    token = os.getenv('HASS_TOKEN')
-    ha_url = os.getenv('HASS_URL')
+    token = os.getenv('home_assistant_token')
+    ha_url = os.getenv('home_assistant_url')
     headers = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json',
@@ -158,8 +158,8 @@ def play_spotify():
     Play Spotify on a specified media player in Home Assistant.
     """
     device_name = 'media_player.spotify_tom'
-    token = os.getenv('HASS_TOKEN')
-    ha_url = os.getenv('HASS_URL')
+    token = os.getenv('home_assistant_token')
+    ha_url = os.getenv('home_assistant_url')
 
     # Headers for the HTTP request
     headers = {
@@ -185,8 +185,8 @@ def pause_spotify():
     Pause Spotify on a specified media player in Home Assistant.
     """
     device_name = 'media_player.spotify_tom'
-    token = os.getenv('HASS_TOKEN')
-    ha_url = os.getenv('HASS_URL')
+    token = os.getenv('home_assistant_token')
+    ha_url = os.getenv('home_assistant_url')
 
     # Headers for the HTTP request
     headers = {

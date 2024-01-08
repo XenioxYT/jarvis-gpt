@@ -27,7 +27,7 @@ def get_directions(start_location, end_location, mode="driving"):
     :param end_location: The destination location (address).
     :return: Formatted directions.
     """
-    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    api_key = os.getenv("google_maps_api_key")
     base_url = "https://maps.googleapis.com/maps/api/directions/json?"
     params = {
         'origin': start_location,

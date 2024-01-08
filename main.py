@@ -67,15 +67,15 @@ def stop_thinking_sound():
 
 
 # Load environment variables
-api_key = os.getenv("OPENAI_API_KEY")
-api_base = os.getenv("OPENAI_API_BASE")
+api_key = os.getenv("openai_api_key")
+api_base = os.getenv("openai_api_base")
 
-discord_token = os.environ.get('DISCORD_TOKEN')
+discord_token = os.environ.get('discord_token')
 
 oai_client = OpenAI(base_url=api_base, api_key=api_key)
-pv_access_key = os.getenv("PORCUPINE_ACCESS_KEY")
+pv_access_key = os.getenv("picovoice_access_key")
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./creds.json"
-OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
+openweather_api_key = os.getenv("openweather_api_key")
 LISTENING_SOUND = "./sounds/started_listening.wav"
 STOPPED_LISTENING_SOUND = "./sounds/stopped_listening.wav"
 # THINKING_SOUND = "./sounds/thinking.wav"

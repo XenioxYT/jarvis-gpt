@@ -9,8 +9,8 @@ def toggle_entity(entity_id, switch):
     # Convert the switch parameter to boolean more efficiently
     switch = str(switch).lower() == 'true'
 
-    access_token = os.getenv('HASS_TOKEN')
-    home_assistant_url = os.getenv('HASS_URL')
+    access_token = os.getenv('home_assistant_token')
+    home_assistant_url = os.getenv('home_assistant_url')
 
     # Extract the entity type and determine the service endpoint
     entity_type = entity_id.split(".")[0]
@@ -40,8 +40,8 @@ def toggle_entity(entity_id, switch):
 # toggle_entity(entity_id, False)
 
 def list_light_switch_entities():
-    access_token = os.getenv('HASS_TOKEN')
-    home_assistant_url = os.getenv('HASS_URL')
+    access_token = os.getenv('home_assistant_token')
+    home_assistant_url = os.getenv('home_assistant_url')
 
     url = f"{home_assistant_url}/api/states"
     headers = {"Authorization": f"Bearer {access_token}"}
