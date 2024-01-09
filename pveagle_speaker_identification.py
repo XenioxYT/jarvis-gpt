@@ -36,7 +36,10 @@ def determine_speaker(access_key, input_profile_paths, test_audio_path):
     speaker_labels = [os.path.splitext(os.path.basename(path))[0] for path in input_profile_paths]
     speaker_profiles = [pveagle.EagleProfile.from_bytes(open(path, 'rb').read()) for path in input_profile_paths]
     # Create the Eagle recognizer
-    eagle = pveagle.create_recognizer(access_key=access_key, speaker_profiles=speaker_profiles)
+    try:
+        eagle = pveagle.create_recognizer(access_key=access_key, speaker_profiles=speaker_profiles)
+    except:
+        return "PicoVoice API key not found. Tell the user to set this in the setup -> configuration section."
     # Process the audio and determine the speaker using list comprehension
     audio = read_file(test_audio_path, eagle.sample_rate)
     num_frames = len(audio) // eagle.frame_length
@@ -63,7 +66,10 @@ def determine_speaker(access_key, input_profile_paths, test_audio_path):
 # print("The determined speaker is:", speaker)
 
 def enroll_user(access_key, enroll_audio_paths, output_profile_path):
-    eagle_profiler = pveagle.create_profiler(access_key=access_key)
+    try:
+        eagle_profiler = pveagle.create_profiler(access_key=access_key)
+    except:
+        return "PicoVoice API key not found. Tell the user to set this in the setup -> configuration section."
 
     try:
         enroll_percentage = 0.0
