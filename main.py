@@ -33,12 +33,9 @@ thinking_sound_stop_event = threading.Event()
 
 current_playback = None
 
-
-test_db = sqlite3.connect('../jarvis-setup/jarvisSetup/db.sqlite3')
-print("Opened database successfully")
-test = test_db.execute('SELECT * FROM webserver_tools')
-print(test.fetchall())
-
+custom_conn = sqlite3.connect('../jarvis-setup/jarvisSetup/db.sqlite3')
+id, assistant_name, wake_word, system_prompt, llm_model, voice_diarizaition = custom_conn.execute('SELECT * FROM webserver_generalcustomization').fetchone()
+print(id, assistant_name, wake_word, system_prompt, llm_model, voice_diarizaition)
 
 def play_sound(sound_file, loop=False):
     global current_playback
