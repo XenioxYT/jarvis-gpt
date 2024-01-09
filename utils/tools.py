@@ -1,6 +1,14 @@
-from utils.home_assistant import list_light_switch_entities
-tools = [
-    {
+# from utils.home_assistant import list_light_switch_entities
+import sqlite3
+
+conn = sqlite3.connect('../jarvis-setup/jarvisSetup/db.sqlite3') # TODO: Change this to the correct path when setup is implemented in the main project
+id, live_weather, bbc_news, google_search, google_calendar_check, google_calendar_add, google_maps_directions, google_maps_info, set_reminder, list_reminder, edit_reminder, smart_home_control, discord_message, save_notes, list_notes, edit_notes = conn.execute('SELECT * FROM webserver_tools').fetchone()
+conn.close()
+
+tools = []
+
+if live_weather:
+    tools.append({
         "type": "function",
         "function": {
             "name": "get_weather_data",
@@ -20,25 +28,38 @@ tools = [
                 "required": ["location"],
             },
         }
-    },
-    {
+    })
+
+if bbc_news:
+    tools.append({
         "type": "function",
         "function": {
-            "name": "enroll_user",
-            "description": "Make the sentence you give one that they will ask you, for example 'Tell me the weather in'. It doesn't have to match exactly, but it should be similar. Needs to be in the form [sentence] [name of user]",
+            "name": "bbc_news_briefing",
+            "description": "Play a BBC News briefing to the user. It will be played after your next response. Don't ask the user if they want to hear the news, as it will play automatically.",
+        },
+    })
+    
+if google_search:
+    tools.append({
+        "type": "function",
+        "function": {
+            "name": "google_search",
+            "description": "Search Google for a given query and return the top results.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name": {
+                    "query": {
                         "type": "string",
-                        "description": "The name of the user.",
+                        "description": "The query to search for.",
                     }
                 },
-                "required": ["name"],
+                "required": ["query"],
             },
         },
-    },
-    {
+    })
+    
+if google_calendar_check:
+    tools.append({
         "type": "function",
         "function": {
             "name": "check_calendar",
@@ -58,25 +79,10 @@ tools = [
                 "required": ["date", "username"],
             },
         },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "google_search",
-            "description": "Search Google for a given query and return the top results.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "The query to search for.",
-                    }
-                },
-                "required": ["query"],
-            },
-        },
-    },
-    {
+    })
+    
+if google_calendar_add:
+    tools.append({
         "type": "function",
         "function": {
             "name": "add_event_to_calendar",
@@ -114,8 +120,56 @@ tools = [
                 "required": ["summary", "start", "end", "username"],
             },
         },
-    },
-    {
+    })
+    
+if google_maps_directions:
+    tools.append({
+        "type": "function",
+        "function": {
+            "name": "get_directions",
+            "description": "Get directions from Google Maps.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "start_location": {
+                        "type": "string",
+                        "description": "The start location of the route.",
+                    },
+                    "end_location": {
+                        "type": "string",
+                        "description": "The end location of the route.",
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "The mode of transport. Can be 'driving', 'walking', 'bicycling', or 'transit'. Defaults to 'driving'.",
+                    }
+                },
+                "required": ["start_location", "end_location"],
+            },
+        },
+    })
+    
+if google_maps_info:
+    tools.append({
+        "type": "function",
+        "function": {
+            "name": "search_places",
+            "description": "Search Google maps places for locations. Gives the name, address, types, website, google maps link, and rating of a given place.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "text_query": {
+                        "type": "string",
+                        "description": "The query to search for.",
+                    }
+                },
+                "required": ["text_query"],
+            },
+        },
+    })
+    
+if set_reminder:
+    tools.append({
         "type": "function",
         "function": {
             "name": "set_reminder",
@@ -135,8 +189,19 @@ tools = [
                 "required": ["reminder_text", "reminder_time"],
             },
         },
-    },
-    {
+    })
+    
+if list_reminder:
+    tools.append({
+        "type": "function",
+        "function": {
+            "name": "list_reminders",
+            "description": "List all reminders that have not yet been notified",
+        },
+    })
+    
+if edit_reminder:
+    tools.append({
         "type": "function",
         "function": {
             "name": "edit_reminder",
@@ -162,193 +227,6 @@ tools = [
                 "required": ["search_text"],
             },
         },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "list_reminders",
-            "description": "List all reminders that have not yet been notified",
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "bbc_news_briefing",
-            "description": "Play a BBC News briefing to the user. It will be played after your next response. Don't ask the user if they want to hear the news, as it will play automatically.",
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "volume_up",
-            "description": "Increase the volume by 10%.",
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "volume_down",
-            "description": "Decrease the volume by 10%.",
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "control_switch",
-            "description": "Toggle the state of an entity in Home Assistant.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "entity_id": {
-                        "type": "string",
-                        "description": f"The entity ID to toggle. These entity IDs are: {str(list_light_switch_entities())}.",
-                    },
-                    "switch": {
-                        "type": "boolean",
-                        "description": "The switch parameter to turn the entity on or off. True for on, False for off.",
-                    },
-                },
-                "required": ["entity_id", "switch"],
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "play_song_on_spotify",
-            "description": "Searches for a song on Spotify and plays it. The function requires the search term for the song.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "search_term": {
-                        "type": "string",
-                        "description": "The search term for the song, e.g., 'Shape of You - Ed Sheeran'."
-                    },
-                },
-                "required": ["search_term"],
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "send_to_phone",
-            "description": "Send a message to the user's phone, for example links, calendar events or reminders. Link the user to their username. Format the message using markdown.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "username": {
-                        "type": "string",
-                        "description": "The username of the user to send the message to. Use the references: ['user' = 'username'], ['Tom' = 'xeniox']",
-                    },
-                    "text": {
-                        "type": "string",
-                        "description": "The text to send to the user's phone.",
-                    },
-                },
-                "required": ["username", "text"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "save_note",
-            "description": "Save a note for the user. ",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "title": {
-                        "type": "string",
-                        "description": "The title of the note."
-                    },
-                    "text": {
-                        "type": "string",
-                        "description": "The text content of the note."
-                    }
-                },
-                "required": ["title", "text"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "retrieve_notes",
-            "description": "Retrieves all notes for a given user, formatted with title, text, and creation date.",
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "edit_or_delete_notes",
-            "description": "Edits or deletes a note for a given user. If multiple notes with the same title are found, it lists all matches. Otherwise, it updates or deletes the note based on the new title and text.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "title": {
-                        "type": "string",
-                        "description": "The search title of the note to be edited or deleted."
-                    },
-                    "new_title": {
-                        "type": "string",
-                        "description": "The new title for the note. If not provided but new_text is, only the text will be updated. If neither is provided, the note will be deleted."
-                    },
-                    "new_text": {
-                        "type": "string",
-                        "description": "The new text for the note. If not provided but new_title is, only the title will be updated. If neither is provided, the note will be deleted."
-                    },
-                    "index": {
-                        "type": "integer",
-                        "description": "The index of the note to be edited or deleted if multiple notes with the same title are found."
-                    }
-                },
-                "required": ["title"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_directions",
-            "description": "Get directions from Google Maps.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "start_location": {
-                        "type": "string",
-                        "description": "The start location of the route.",
-                    },
-                    "end_location": {
-                        "type": "string",
-                        "description": "The end location of the route.",
-                    },
-                    "mode": {
-                        "type": "string",
-                        "description": "The mode of transport. Can be 'driving', 'walking', 'bicycling', or 'transit'. Defaults to 'driving'.",
-                    }
-                },
-                "required": ["start_location", "end_location"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "search_places",
-            "description": "Search Google maps places for locations. Gives the name, address, types, website, google maps link, and rating of a given place.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "text_query": {
-                        "type": "string",
-                        "description": "The query to search for.",
-                    }
-                },
-                "required": ["text_query"],
-            },
-        },
-    },
-]
+    })
 
-# print(tools)
+print(tools)
