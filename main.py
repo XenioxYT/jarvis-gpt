@@ -11,7 +11,6 @@ import pvporcupine
 import pvkoala
 from dotenv import load_dotenv
 from openai import OpenAI
-from google.cloud import texttospeech
 import datetime
 import simpleaudio as sa
 from queue import Queue
@@ -26,16 +25,36 @@ from generate_response import generate_response as get_chatgpt_response
 from utils.store_conversation import get_conversation, store_conversation
 from text_to_speech import text_to_speech
 
-
 load_dotenv()
 
 thinking_sound_stop_event = threading.Event()
 
 current_playback = None
+# Load environment variables
+api_key = os.getenv("openai_api_key")
+api_base = os.getenv("openai_api_base")
+pv_access_key = os.getenv("picovoice_access_key")
+
+# Define sound files
+LISTENING_SOUND = "./sounds/started_listening.wav"
+STOPPED_LISTENING_SOUND = "./sounds/stopped_listening.wav"
+# THINKING_SOUND = "./sounds/thinking.wav"
+SUCCESS_SOUND = "./sounds/success.wav"
+
+# Create Picovoice and Koala clients
+try:
+    porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
+    koala = pvkoala.create(access_key=pv_access_key)
+except:
+    raise Exception("Picovoice access key not found or invalid.")
+
+# Initialize PyAudio
+pa = pyaudio.PyAudio()
 
 custom_conn = sqlite3.connect('../jarvis-setup/jarvisSetup/db.sqlite3')
-id, assistant_name, wake_word, system_prompt, llm_model, voice_diarizaition = custom_conn.execute('SELECT * FROM webserver_generalcustomization').fetchone()
-print(id, assistant_name, wake_word, system_prompt, llm_model, voice_diarizaition)
+id, assistant_name, wake_word, llm_model, voice_diarizaition = custom_conn.execute('SELECT * FROM webserver_generalcustomization').fetchone()
+# print(id, assistant_name, wake_word, llm_model, voice_diarizaition)
+
 
 def play_sound(sound_file, loop=False):
     global current_playback
@@ -67,34 +86,6 @@ def stop_thinking_sound():
 
     # Clear the current playback reference
     current_playback = None
-
-
-# Load environment variables
-api_key = os.getenv("openai_api_key")
-api_base = os.getenv("openai_api_base")
-
-discord_token = os.environ.get('discord_token')
-
-oai_client = OpenAI(base_url=api_base, api_key=api_key)
-pv_access_key = os.getenv("picovoice_access_key")
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./creds.json"
-openweather_api_key = os.getenv("openweather_api_key")
-LISTENING_SOUND = "./sounds/started_listening.wav"
-STOPPED_LISTENING_SOUND = "./sounds/stopped_listening.wav"
-# THINKING_SOUND = "./sounds/thinking.wav"
-SUCCESS_SOUND = "./sounds/success.wav"
-
-client = texttospeech.TextToSpeechClient()
-
-SCOPES = ['https://www.googleapis.com/auth/calendar']
-
-REMINDERS_DB_FILE = 'reminders.json'
-
-porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
-koala = pvkoala.create(access_key=pv_access_key)
-
-# Initialize PyAudio
-pa = pyaudio.PyAudio()
 
 
 def check_reminders(cursor=None, db_conn=None):
