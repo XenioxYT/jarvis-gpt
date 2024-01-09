@@ -17,11 +17,14 @@ def play_spotify_uri(spotify_uri):
     :param device_name: Entity ID of the Google Home speaker.
     """
     device_name = 'media_player.tom_s_room'
-    token = os.getenv('home_assistant_token')
-    ha_url = os.getenv('home_assistant_url')
+    try:
+        access_token = os.getenv('home_assistant_token')
+        home_assistant_url = os.getenv('home_assistant_url')
+    except:
+        return "Home Assistant token or URL not found. Tell the user to set this in the setup -> configuration section."
     # Headers for the HTTP request
     headers = {
-        'Authorization': f'Bearer {token}',
+        'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json',
     }
 
@@ -33,7 +36,7 @@ def play_spotify_uri(spotify_uri):
 
     # Make the request to Home Assistant
     response = requests.post(
-        f'{ha_url}/api/services/spotcast/start',
+        f'{home_assistant_url}/api/services/spotcast/start',
         json=data,
         headers=headers,
     )
@@ -55,11 +58,14 @@ def search_spotify_song(search_term):
     :param device_name: Entity ID of the Google Home speaker.
     """
     device_name = 'media_player.tom_s_room'
-    token = os.getenv('home_assistant_token')
-    ha_url = os.getenv('home_assistant_url')
+    try:
+        access_token = os.getenv('home_assistant_token')
+        home_assistant_url = os.getenv('home_assistant_url')
+    except:
+        return "Home Assistant token or URL not found. Tell the user to set this in the setup -> configuration section."
     # Headers for the HTTP request
     headers = {
-        'Authorization': f'Bearer {token}',
+        'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json',
     }
 
@@ -71,7 +77,7 @@ def search_spotify_song(search_term):
 
     # Make the request to Home Assistant
     response = requests.post(
-        f'{ha_url}/api/services/spotcast/start',
+        f'{home_assistant_url}/api/services/spotcast/start',
         json=data,
         headers=headers,
     )
@@ -96,8 +102,11 @@ def toggle_spotify_playback(force_play=False):
     :param force_play: Boolean to determine whether to toggle playback regardless of the current state.
     """
     device_name = 'media_player.spotify_tom'
-    token = os.getenv('home_assistant_token')
-    ha_url = os.getenv('home_assistant_url')
+    try:
+        access_token = os.getenv('home_assistant_token')
+        home_assistant_url = os.getenv('home_assistant_url')
+    except:
+        return "Home Assistant token or URL not found. Tell the user to set this in the setup -> configuration section."
 
     # Check if Spotify is playing, skip if force_play is True
     if not force_play and not is_spotify_playing_on_device():
@@ -106,13 +115,13 @@ def toggle_spotify_playback(force_play=False):
 
     # Headers for the HTTP request
     headers = {
-        'Authorization': f'Bearer {token}',
+        'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json',
     }
 
     # Toggle the playback
     response = requests.post(
-        f'{ha_url}/api/services/media_player/media_play_pause',
+        f'{home_assistant_url}/api/services/media_player/media_play_pause',
         json={'entity_id': device_name},
         headers=headers,
     )
@@ -133,15 +142,18 @@ def is_spotify_playing_on_device():
     :return: True if Spotify is playing, False otherwise.
     """
     device_name = 'media_player.tom_s_room'
-    token = os.getenv('home_assistant_token')
-    ha_url = os.getenv('home_assistant_url')
+    try:
+        access_token = os.getenv('home_assistant_token')
+        home_assistant_url = os.getenv('home_assistant_url')
+    except:
+        return "Home Assistant token or URL not found. Tell the user to set this in the setup -> configuration section."
     headers = {
-        'Authorization': f'Bearer {token}',
+        'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json',
     }
 
     response = requests.get(
-        f'{ha_url}/api/states/{device_name}',
+        f'{home_assistant_url}/api/states/{device_name}',
         headers=headers,
     )
 
@@ -158,18 +170,21 @@ def play_spotify():
     Play Spotify on a specified media player in Home Assistant.
     """
     device_name = 'media_player.spotify_tom'
-    token = os.getenv('home_assistant_token')
-    ha_url = os.getenv('home_assistant_url')
+    try:
+        access_token = os.getenv('home_assistant_token')
+        home_assistant_url = os.getenv('home_assistant_url')
+    except:
+        return "Home Assistant token or URL not found. Tell the user to set this in the setup -> configuration section."
 
     # Headers for the HTTP request
     headers = {
-        'Authorization': f'Bearer {token}',
+        'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json',
     }
 
     # Send the play command
     response = requests.post(
-        f'{ha_url}/api/services/media_player/media_play',
+        f'{home_assistant_url}/api/services/media_player/media_play',
         json={'entity_id': device_name},
         headers=headers,
     )
@@ -185,18 +200,21 @@ def pause_spotify():
     Pause Spotify on a specified media player in Home Assistant.
     """
     device_name = 'media_player.spotify_tom'
-    token = os.getenv('home_assistant_token')
-    ha_url = os.getenv('home_assistant_url')
+    try:
+        access_token = os.getenv('home_assistant_token')
+        home_assistant_url = os.getenv('home_assistant_url')
+    except:
+        return "Home Assistant token or URL not found. Tell the user to set this in the setup -> configuration section."
 
     # Headers for the HTTP request
     headers = {
-        'Authorization': f'Bearer {token}',
+        'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json',
     }
 
     # Send the pause command
     response = requests.post(
-        f'{ha_url}/api/services/media_player/media_pause',
+        f'{home_assistant_url}/api/services/media_player/media_pause',
         json={'entity_id': device_name},
         headers=headers,
     )
