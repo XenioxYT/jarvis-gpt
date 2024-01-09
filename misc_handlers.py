@@ -4,7 +4,11 @@ import shutil
 from pveagle_speaker_identification import enroll_user, determine_speaker
 from noise_reduction import reduce_noise_and_normalize
 
-pv_access_key = os.getenv("picovoice_access_key")
+try:
+    pv_access_key = os.getenv("picovoice_access_key")
+except:
+    raise Exception("Picovoice access key not found.")
+
 
 def enroll_user_handler(name):
     # Create the destination directory if it doesn't exist
@@ -48,6 +52,10 @@ def determine_user_handler(queue):
         return "Unknown"
     input_profile_paths = [f'./user_models/{name}' for name in os.listdir('./user_models/')]
     audio_path = './temp_cleaned_normalised.wav'
-    result = determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths, test_audio_path=audio_path)
+    try:
+        result = determine_speaker(access_key=pv_access_key, input_profile_paths=input_profile_paths, test_audio_path=audio_path)
+    except:
+        return "PicoVoice API key not found. Tell the user to set this in the setup -> configuration section."
+        
     queue.put(result)
     return "Unknown"
