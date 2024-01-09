@@ -8,9 +8,11 @@ load_dotenv()
 def toggle_entity(entity_id, switch):
     # Convert the switch parameter to boolean more efficiently
     switch = str(switch).lower() == 'true'
-
-    access_token = os.getenv('home_assistant_token')
-    home_assistant_url = os.getenv('home_assistant_url')
+    try:
+        access_token = os.getenv('home_assistant_token')
+        home_assistant_url = os.getenv('home_assistant_url')
+    except:
+        return "Home Assistant token or URL not found. Tell the user to set this in the setup -> configuration section."
 
     # Extract the entity type and determine the service endpoint
     entity_type = entity_id.split(".")[0]
@@ -40,8 +42,11 @@ def toggle_entity(entity_id, switch):
 # toggle_entity(entity_id, False)
 
 def list_light_switch_entities():
-    access_token = os.getenv('home_assistant_token')
-    home_assistant_url = os.getenv('home_assistant_url')
+    try:
+        access_token = os.getenv('home_assistant_token')
+        home_assistant_url = os.getenv('home_assistant_url')
+    except:
+        return "Home Assistant token or URL not found. Tell the user to set this in the setup -> configuration section."
 
     url = f"{home_assistant_url}/api/states"
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -57,5 +62,5 @@ def list_light_switch_entities():
         print(f"Failed to fetch entities. Response:", response.text)
         return []
 
-light_switch_entities = list_light_switch_entities()
-print(light_switch_entities)
+# light_switch_entities = list_light_switch_entities()
+# print(light_switch_entities)
