@@ -62,4 +62,4 @@ def send_message_sync(username, text):
     return message_result
 
 
-print(send_message_sync("xeniox", "text"))
+# print(send_message_sync("xeniox", "text"))
