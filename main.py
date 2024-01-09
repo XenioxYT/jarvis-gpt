@@ -34,6 +34,12 @@ thinking_sound_stop_event = threading.Event()
 current_playback = None
 
 
+test_db = sqlite3.connect('../jarvis-setup/jarvisSetup/db.sqlite3')
+print("Opened database successfully")
+test = test_db.execute('SELECT * FROM webserver_tools')
+print(test.fetchall())
+
+
 def play_sound(sound_file, loop=False):
     global current_playback
     # Create wave_obj and play_obj once outside the loop
@@ -175,7 +181,7 @@ def main():
             #     spotify_was_playing = True
             # toggle_spotify_playback()
             play_sound(LISTENING_SOUND)
-            time.sleep(0.25)
+            # time.sleep(0.25)
             accumulated_frames = []
             num_silent_frames = 0
             vad_frame_accumulator = []
@@ -185,10 +191,10 @@ def main():
                 pcm = audio_stream.read(koala.frame_length, exception_on_overflow=False)
                 pcm_unpacked = np.frombuffer(pcm, dtype='h', count=koala.frame_length)
 
-                pcm_boosted = np.multiply(pcm_unpacked, volume_boost_factor).astype(int)
+                # pcm_boosted = np.multiply(pcm_unpacked, volume_boost_factor).astype(int)
 
                 # Apply Koala noise suppression
-                pcm_suppressed = koala.process(pcm_boosted)
+                pcm_suppressed = koala.process(pcm_unpacked)
 
                 # Accumulate the suppressed frames for a full VAD frame
                 vad_frame_accumulator = np.append(vad_frame_accumulator, pcm_suppressed)
