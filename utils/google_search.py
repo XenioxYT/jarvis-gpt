@@ -5,14 +5,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def google_search(query):
-    api_key = os.getenv('google_api_key')
-    cse_id = os.getenv('google_cse_id')
+    try:
+        api_key = os.getenv('google_api_key')
+        cse_id = os.getenv('google_cse_id')
+    except:
+        return "API key or CSE ID not found. Tell the user to set this in the setup -> configuration section."
 
     # Build a service object for the API
-    service = build("customsearch", "v1", developerKey=api_key)
+    try:
+        service = build("customsearch", "v1", developerKey=api_key)
+    except:
+        return "Invalid Google search API key. Tell the user to set this in the setup -> configuration section."
 
     # Perform the search
-    res = service.cse().list(q=query, cx=cse_id, gl='uk').execute()
+    try:
+        res = service.cse().list(q=query, cx=cse_id, gl='uk').execute()
+    except:
+        return "Invalid Google CSE ID. Tell the user to set this in the setup -> configuration section."
 
     # Extract and format the results
     results = []
