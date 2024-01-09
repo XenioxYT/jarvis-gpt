@@ -12,13 +12,19 @@ message_result = None
 async def send_message_to_user(username, text):
     global message_result
     guild_id = 1187204974678130718
-    token = os.getenv('discord_token')
+    try:
+        token = os.getenv("discord_token")
+    except:
+        print("Token not found.")
+        message_result = "Token not found. Tell the user to set this in the setup -> configuration section."
+        return
 
     intents = discord.Intents.default()
     intents.members = True
     client = discord.Client(intents=intents)
 
     async def find_and_send_message():
+        global message_result
         guild = client.get_guild(guild_id)
         if guild:
             members = await guild.fetch_members(limit=None).flatten()
@@ -30,8 +36,10 @@ async def send_message_to_user(username, text):
                 await user.send(text)
                 return f"Message sent to {best_match}"
             else:
+                message_result = "Username not found."
                 return "Username not found."
         else:
+            message_result = "Guild not found."
             return "Guild not found."
 
     @client.event
@@ -40,9 +48,18 @@ async def send_message_to_user(username, text):
         message_result = await find_and_send_message()
         await client.close()
 
-    await client.start(token)
+    try:
+        await client.start(token)
+    except:
+        print("Invalid token.")
+        message_result = "Invalid token. Tell the user to set this in the setup -> configuration section."
+        await client.close()
+        return "Invalid token. Tell the user to set this in the setup -> configuration section."
 
 def send_message_sync(username, text):
     global message_result
     asyncio.run(send_message_to_user(username, text))
     return message_result
+
+
+print(send_message_sync("xeniox", "text"))
