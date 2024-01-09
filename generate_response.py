@@ -29,10 +29,23 @@ load_dotenv()
 api_key = os.getenv("openai_api_key")
 api_base = os.getenv("openai_api_base")
 
-oai_client = OpenAI(base_url=api_base, api_key=api_key)
+def create_openai_client(api_key, api_base):
+    try:
+        openai_client = OpenAI(base_url=api_base, api_key=api_key)
+        openai_client.models.list()  # Test the client
+        return openai_client
+    except:
+        print("OpenAI API key is invalid.")
+        return None
+
+oai_client = create_openai_client(api_key, api_base)
+
+if oai_client is None:
+    raise Exception("OpenAI API key is invalid.")
 
 tts_thread = None
 global bbc_news_thread
+
 
 def split_first_sentence(text):
     # Look for a period, exclamation mark, or question mark that might indicate the end of a sentence
