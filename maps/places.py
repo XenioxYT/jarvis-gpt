@@ -6,16 +6,19 @@ def search_places(text_query, max_result_count=5, price_levels=None, open_now=No
     """
     Perform a Text Search request to Google Places API.
 
-    :param api_key: Your Google Maps API key.
     :param text_query: The text string on which to search.
-    :param field_mask: Fields to return in the response.
-    :param location_bias: Optional location bias (circle or rectangle).
     :param max_result_count: Optional max number of results to return.
     :param price_levels: Optional price levels to filter.
     :param open_now: Optional flag to filter places open now.
     :return: Response from the API as a JSON object.
+    :rtype: dict
+    :raises: Exception if the Google Maps API key is not found or if there is an error with the API request.
     """
-    api_key = os.getenv("google_maps_api_key")
+    try:
+        api_key = os.getenv("google_maps_api_key")
+    except:
+        return "Google Maps API key not found. Tell the user to set this in the setup -> configuration section."
+    
     field_mask = 'places.displayName,places.formattedAddress,places.types,places.websiteUri,places.googleMapsUri,places.rating'
     url = "https://places.googleapis.com/v1/places:searchText"
 
@@ -42,7 +45,7 @@ def search_places(text_query, max_result_count=5, price_levels=None, open_now=No
         results = response.json()
         return results
     else:
-        return f"Error: {response.status_code}, {response.text}"
+        return f"Error: {response.status_code}, {response.text}. The user may have exceeded their Google Maps API quota, or the API key may be invalid."
 
 
 def get_specific_place_results(text_query, max_result_count=1):
@@ -55,7 +58,10 @@ def get_specific_place_results(text_query, max_result_count=1):
     :param max_result_count: Optional max number of results to return.
     :return: Response from the API as a JSON object.
     """
-    api_key = os.getenv("google_maps_api_key")
+    try:
+        api_key = os.getenv("google_maps_api_key")
+    except:
+        return "Google Maps API key not found. Tell the user to set this in the setup -> configuration section."
     field_mask = 'places.displayName,places.formattedAddress,places.types,places.websiteUri,places.googleMapsUri,places.rating'
     url = "https://places.googleapis.com/v1/places:searchText"
 
@@ -76,4 +82,4 @@ def get_specific_place_results(text_query, max_result_count=1):
         results = response.json()
         return results
     else:
-        return f"Error: {response.status_code}, {response.text}"
+        return f"Error: {response.status_code}, {response.text}. The user may have exceeded their Google Maps API quota, or the API key may be invalid."
