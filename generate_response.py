@@ -134,7 +134,7 @@ def process_tool_call(tool_call, speaker, username_mapping, available_functions,
     return messages, tts_multiple_spoken, tts_thread_function, bbc_news_thread
 
 
-def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=None):
+def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=None, llm_model="gpt-3.5-turbo-1106"):
     global tts_thread
     global bbc_news_thread
     available_functions = {
@@ -166,7 +166,10 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
     #     enroll_user_thread.start()
     
     timestamp = datetime.datetime.now().strftime("%H:%M on %a %d %B %Y")
-    messages.append({"role": "user", "content": f"At {timestamp}, {speaker} said: {input_message}"})
+    if speaker != "VoiceNotSet":
+        messages.append({"role": "user", "content": f"At {timestamp}, {speaker} said: {input_message}"})
+    else:
+        messages.append({"role": "user", "content": f"At {timestamp} the speaker said: {input_message}"})
     
     store_conversation(1, messages, cursor, db_conn) if cursor else store_conversation(1, messages)
     
@@ -196,7 +199,7 @@ def generate_response(input_message, speaker="Unknown", cursor=None, db_conn=Non
         else:  
             response = oai_client.chat.completions.create(
                 messages=messages,
-                model="gpt-4-1106-preview",
+                model=llm_model,
                 tools=tools,
                 stream=True
             )
