@@ -41,19 +41,17 @@ STOPPED_LISTENING_SOUND = "./sounds/stopped_listening.wav"
 # THINKING_SOUND = "./sounds/thinking.wav"
 SUCCESS_SOUND = "./sounds/success.wav"
 
-# Create Picovoice and Koala clients
+custom_conn = sqlite3.connect('../jarvis-setup/jarvisSetup/db.sqlite3')
+id, assistant_name, wake_word, llm_model, voice_diarizaition = custom_conn.execute('SELECT * FROM webserver_generalcustomization').fetchone()
+
 try:
-    porcupine = pvporcupine.create(access_key=pv_access_key, keywords=["jarvis"])
+    porcupine = pvporcupine.create(access_key=pv_access_key, keywords=[wake_word])
     koala = pvkoala.create(access_key=pv_access_key)
 except:
     raise Exception("Picovoice access key not found or invalid.")
 
 # Initialize PyAudio
 pa = pyaudio.PyAudio()
-
-custom_conn = sqlite3.connect('../jarvis-setup/jarvisSetup/db.sqlite3')
-id, assistant_name, wake_word, llm_model, voice_diarizaition = custom_conn.execute('SELECT * FROM webserver_generalcustomization').fetchone()
-# print(id, assistant_name, wake_word, llm_model, voice_diarizaition)
 
 
 def play_sound(sound_file, loop=False):
@@ -220,22 +218,27 @@ def main():
 
             # Initialize and start threads with the queues as arguments
             transcript_thread = threading.Thread(target=transcribe, args=(transcribe_queue,))
-            user_handler_thread = threading.Thread(target=determine_user_handler, args=(user_handler_queue,))
+            if voice_diarizaition:
+                user_handler_thread = threading.Thread(target=determine_user_handler, args=(user_handler_queue,))
             transcript_thread.start()
             user_handler_thread.start()
 
             # Wait for threads to finish
             transcript_thread.join()
             print("transcription thread finished!")
-            user_handler_thread.join()
-            print("determine user thread finished!")
+            if voice_diarizaition:
+                user_handler_thread.join()
+                print("determine user thread finished!")
 
             # Retrieve results from the queues
             command = transcribe_queue.get()
             print(command)
-            user = user_handler_queue.get()
+            if voice_diarizaition:
+                user = user_handler_queue.get()
+            else:
+                user = "VoiceNotSet"
             print(user)
-            response, tts_thread, bbc_news_thread = get_chatgpt_response(command, speaker=str(user))
+            response, tts_thread, bbc_news_thread = get_chatgpt_response(command, speaker=str(user), llm_model=llm_model)
             if spotify_was_playing:
                 toggle_spotify_playback()
             if tts_thread and tts_thread.is_alive():
